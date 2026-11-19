@@ -1,6 +1,6 @@
 export const SITE = {
   name: "LGNDRY.Co",
-  legal: "LGNDRY Content",
+  legal: "LGNDRY.Co",
   tagline: "Found beauty in the mundane",
   description:
     "LGNDRY.Co is an independent visual studio in Limpopo, South Africa. Limited-edition archival photographic prints, collected one at a time.",

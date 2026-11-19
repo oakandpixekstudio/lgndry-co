@@ -41,7 +41,7 @@ export default function ContactPage() {
             </div>
             <div>
               <p className="micro mb-3 text-ash">Studio</p>
-              <p>LGNDRY Content / LGNDRY.Co</p>
+              <p>LGNDRY.Co</p>
               <p className="text-ash">{SITE.location}</p>
             </div>
             <div>

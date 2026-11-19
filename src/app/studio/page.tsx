@@ -41,13 +41,13 @@ export default function StudioPage() {
           </Reveal>
           <div className="max-w-[560px] space-y-6 pb-4 text-[15px] leading-[1.8]">
             <p className="text-[clamp(22px,2.4vw,34px)] leading-[1.15] font-bold tracking-[-0.05em]">
-              LGNDRY Content is an independent visual studio based in {SITE.location}.
+              LGNDRY.Co is an independent visual studio based in {SITE.location}.
             </p>
             <p className="text-[#444]">
               A visual archive of overlooked things. Scenes not staged. Moments not repeated. The quiet kind of beauty that stays with you.
             </p>
             <p className="text-[#444]">
-              LGNDRY.Co is where that archive becomes something you can live with: limited-edition photographic prints, made with the same patience as the pictures themselves.
+              It is where that archive becomes something you can live with: limited-edition photographic prints, made with the same patience as the pictures themselves.
             </p>
           </div>
         </div>
