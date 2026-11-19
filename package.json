@@ -1,0 +1,21 @@
+{
+  "name": "lgndry-platform",
+  "private": true,
+  "version": "0.1.0",
+  "description": "LGNDRY.Co platform: Studio Desk CRM (apps/studio) and shared packages.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @lgndry/studio dev",
+    "build": "pnpm -r --if-present build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "pnpm -r --if-present lint",
+    "test": "pnpm -r --if-present test",
+    "test:e2e": "playwright test",
+    "test:visual": "playwright test --project=visual",
+    "db:migrate": "pnpm --filter @lgndry/database --if-present migrate",
+    "db:seed:demo": "pnpm --filter @lgndry/database --if-present seed:demo"
+  }
+}

@@ -1,0 +1,5 @@
+packages:
+  - "apps/studio"
+  - "packages/*"
+# apps/storefront is a separate git repository (deployed on Vercel from GitHub) and is
+# intentionally NOT a workspace member until the storefront integration phase.

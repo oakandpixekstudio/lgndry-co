@@ -1,0 +1,49 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+@import "../styles/typography.css";
+@import "../styles/shell.css";
+@import "../styles/components.css";
+@import "../styles/intelligence.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--lg-paper);
+  color: var(--lg-ink);
+  font-family: var(--lg-sans);
+  margin: 0;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+}
+
+/* Visible keyboard focus everywhere (WCAG 2.2 AA). */
+:focus-visible {
+  outline: 2px solid #555;
+  outline-offset: 2px;
+}
+
+::selection {
+  background: #111;
+  color: #fff;
+}

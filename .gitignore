@@ -1,0 +1,35 @@
+# dependencies / build output
+node_modules/
+.pnpm-store/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# secrets and local environment: never commit
+.env
+.env.*
+!.env.example
+*.pem
+client_secret*.json
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Playwright output
+test-results/
+playwright-report/
+
+# Separate projects that live beside the platform but are NOT part of this repository
+/apps/storefront/
+/lgndrycp-site/
+/documents/
+/webites/
+
+# local tooling
+.claude/

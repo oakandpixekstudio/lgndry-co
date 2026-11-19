@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 250" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9e8e4"/>
+      <stop offset="1" stop-color="#bdbcb6"/>
+    </linearGradient>
+    <linearGradient id="r1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3f2ee"/>
+      <stop offset="0.55" stop-color="#9b9a95"/>
+      <stop offset="1" stop-color="#3a3a38"/>
+    </linearGradient>
+    <linearGradient id="r2" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d8d7d2"/>
+      <stop offset="0.5" stop-color="#6e6d69"/>
+      <stop offset="1" stop-color="#1d1d1c"/>
+    </linearGradient>
+    <linearGradient id="r3" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5f5e5a"/>
+      <stop offset="1" stop-color="#141413"/>
+    </linearGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.16"/></feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="900" height="250" fill="url(#sky)"/>
+  <path d="M0 150 C 120 60, 230 40, 340 95 C 450 150, 540 150, 650 80 C 740 25, 830 30, 900 60 L900 250 L0 250 Z" fill="url(#r1)"/>
+  <path d="M0 190 C 130 120, 250 110, 360 150 C 470 190, 580 200, 700 140 C 780 100, 850 105, 900 120 L900 250 L0 250 Z" fill="url(#r2)"/>
+  <path d="M0 225 C 150 190, 280 195, 400 215 C 520 235, 640 225, 760 200 C 820 188, 870 188, 900 192 L900 250 L0 250 Z" fill="url(#r3)"/>
+  <rect width="900" height="250" filter="url(#grain)"/>
+</svg>

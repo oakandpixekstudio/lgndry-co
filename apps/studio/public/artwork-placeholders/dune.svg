@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 320" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="d-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9d8d4"/>
+      <stop offset="1" stop-color="#a9a8a3"/>
+    </linearGradient>
+    <linearGradient id="d-a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#efeeea"/>
+      <stop offset="1" stop-color="#7b7a76"/>
+    </linearGradient>
+    <linearGradient id="d-b" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8b8a86"/>
+      <stop offset="1" stop-color="#1c1c1b"/>
+    </linearGradient>
+    <filter id="d-grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="9"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="500" height="320" fill="url(#d-sky)"/>
+  <path d="M0 210 C 90 120, 190 80, 290 130 C 370 170, 430 150, 500 110 L500 320 L0 320 Z" fill="url(#d-a)"/>
+  <path d="M0 260 C 110 200, 230 190, 330 235 C 400 265, 450 255, 500 235 L500 320 L0 320 Z" fill="url(#d-b)"/>
+  <rect width="500" height="320" filter="url(#d-grain)"/>
+</svg>
