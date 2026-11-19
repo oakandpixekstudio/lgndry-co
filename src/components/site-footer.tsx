@@ -49,7 +49,7 @@ export function SiteFooter() {
             </li>
             <li>
               <a href={SITE.originalSite} target="_blank" rel="noopener" className="hover:underline">
-                Original site ↗
+                Original site ↗︎
               </a>
             </li>
           </ul>
@@ -80,7 +80,7 @@ export function SiteFooter() {
         </div>
       </div>
 
-      <div aria-hidden="true" className="mt-[110px] -ml-[0.04em] origin-left scale-x-[1.018] text-[clamp(110px,20vw,340px)] leading-[0.8] font-black tracking-[-0.115em] whitespace-nowrap">
+      <div aria-hidden="true" className="mt-[110px] -ml-[0.04em] origin-left scale-x-[1.018] text-[19.5vw] md:text-[clamp(110px,20vw,340px)] leading-[0.8] font-black tracking-[-0.115em] whitespace-nowrap">
         LGNDRY.
       </div>
 

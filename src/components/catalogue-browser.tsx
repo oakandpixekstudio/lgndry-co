@@ -125,7 +125,7 @@ export function CatalogueBrowser({ collection, works }: { collection?: Collectio
         <div className="px-5 py-[70px] text-center">
           <p className="text-[13px] tracking-[0.04em] uppercase">No artworks match your filters.</p>
           <button className="tlink mt-6" onClick={reset}>
-            View all works ↗
+            View all works ↗︎
           </button>
           <p className="mt-10 text-[12px] text-ash">
             Looking for something specific? <Link href="/contact" className="underline underline-offset-4">Ask the studio</Link>.

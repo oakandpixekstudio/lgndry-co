@@ -53,12 +53,12 @@ export function WorkCard({
           <span className="underline-offset-4 group-hover:underline">{work.title}</span>
           <span className="font-normal whitespace-nowrap">{priceLabel(work)}</span>
         </div>
-        <div className="flex items-baseline justify-between gap-3 pt-1.5 text-[10px] tracking-[0.03em] uppercase">
+        <div className="flex flex-col items-start gap-1 pt-1.5 text-[10px] tracking-[0.03em] uppercase sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
           <p className="text-[#777]">
             {work.category} / {editionLabel(work)}
           </p>
           <span className={cn("shrink-0 font-semibold whitespace-nowrap", work.mode === "buy" ? "text-ink" : "text-ash")}>
-            {work.mode === "buy" ? "Order online ↗" : "Enquire ↗"}
+            {work.mode === "buy" ? "Order online ↗︎" : "Enquire ↗︎"}
           </span>
         </div>
       </Link>

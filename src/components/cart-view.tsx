@@ -15,7 +15,7 @@ export function CartView() {
         <h2 className="mb-5 max-w-[420px] text-[clamp(34px,4.4vw,64px)] leading-[1.04] font-bold tracking-[-0.08em]">Nothing here. Yet.</h2>
         <p className="mb-8 text-[13px] text-ash">Great things start by looking closer.</p>
         <Link href="/shop" className="btn btn-dark min-w-[260px]">
-          View the collection <span>↗</span>
+          View the collection <span>↗︎</span>
         </Link>
       </div>
     );
@@ -66,7 +66,7 @@ export function CartView() {
           Proceed to checkout <span>→</span>
         </Link>
         <Link href="/shop" className="tlink mt-5 inline-block">
-          Continue shopping ↗
+          Continue shopping ↗︎
         </Link>
         <p className="mt-6 text-[10px] leading-[1.6] text-ash">Prototype: prices are illustrative. Tax, shipping and payment are not connected.</p>
       </aside>

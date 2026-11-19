@@ -36,7 +36,7 @@ function Sent({ title, body, onReset }: { title: string; body: string; onReset: 
       <p className="max-w-[420px] text-[13px] leading-[1.7] text-[#444]">{body}</p>
       <p className="mt-5 text-[10px] tracking-[0.06em] text-ash uppercase">Preview only: no message was sent.</p>
       <button type="button" onClick={onReset} className="tlink mt-6">
-        Send another ↗
+        Send another ↗︎
       </button>
     </div>
   );

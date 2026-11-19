@@ -49,12 +49,12 @@ export default function ContactPage() {
               <ul className="space-y-2">
                 <li>
                   <Link href="/collectors-editions#enquire" className="underline underline-offset-4">
-                    Collector&rsquo;s Edition enquiries ↗
+                    Collector&rsquo;s Edition enquiries ↗︎
                   </Link>
                 </li>
                 <li>
                   <Link href="/commission" className="underline underline-offset-4">
-                    Commission a project ↗
+                    Commission a project ↗︎
                   </Link>
                 </li>
               </ul>

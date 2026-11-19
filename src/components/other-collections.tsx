@@ -12,7 +12,7 @@ export function OtherCollections({ exclude }: { exclude: CollectionSlug }) {
           Continue exploring.
         </h2>
         <Link href="/shop" className="tlink">
-          All works ↗
+          All works ↗︎
         </Link>
       </div>
       <div className="grid gap-5 md:grid-cols-3">
@@ -31,7 +31,7 @@ export function OtherCollections({ exclude }: { exclude: CollectionSlug }) {
               </div>
               <div className="flex justify-between pt-3 text-[11px]">
                 <span className="text-ash">{c.from}</span>
-                <span className="underline-offset-4 group-hover:underline">Explore ↗</span>
+                <span className="underline-offset-4 group-hover:underline">Explore ↗︎</span>
               </div>
             </Link>
           );

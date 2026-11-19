@@ -56,7 +56,7 @@ export default function HomePage() {
               Shop the collection <span>→</span>
             </Link>
             <Link href="/collectors-editions" className="btn btn-line">
-              Collector&rsquo;s Editions <span>↗</span>
+              Collector&rsquo;s Editions <span>↗︎</span>
             </Link>
           </div>
         </div>
@@ -105,7 +105,7 @@ export default function HomePage() {
                   <div className="flex items-baseline justify-between gap-2 pt-3 text-[11px]">
                     <span className="text-ash">{c.from}</span>
                     <span className="inline-flex items-center gap-1 underline-offset-4 group-hover:underline">
-                      Explore <span className="inline-block transition-transform duration-500 group-hover:translate-x-1 group-hover:-translate-y-0.5">↗</span>
+                      Explore <span className="inline-block transition-transform duration-500 group-hover:translate-x-1 group-hover:-translate-y-0.5">↗︎</span>
                     </span>
                   </div>
                 </Link>
@@ -122,7 +122,7 @@ export default function HomePage() {
           <span className="hidden sm:inline">NOT EVERYTHING BEAUTIFUL ASKS FOR ATTENTION.</span>
         </div>
         <Reveal>
-          <h2 id="collection-title" className="display mt-[60px] mb-12 max-w-[1200px] text-[clamp(64px,11vw,175px)]">
+          <h2 id="collection-title" className="display mt-[60px] mb-12 max-w-[1200px] text-[13.2vw] md:text-[clamp(64px,11vw,175px)]">
             <span className="block">THE</span>
             <span className="block pl-[3%] md:pl-[19%]">COLLECTION.</span>
           </h2>
@@ -130,7 +130,7 @@ export default function HomePage() {
         <div className="flex flex-wrap items-end justify-between gap-6 border-b border-ink pb-5">
           <p className="max-w-[320px] text-[13px] leading-[1.7]">Photography worth living with. Individually considered works, presented as archival prints.</p>
           <Link href="/shop" className="tlink">
-            View all works ↗
+            View all works ↗︎
           </Link>
         </div>
         <div className="stagger">
@@ -207,7 +207,7 @@ export default function HomePage() {
           A visual archive of overlooked things. Scenes not staged. Moments not repeated. The quiet kind of beauty that stays with you.
         </p>
         <Link href="/studio" className="tlink relative z-[4] mt-8 inline-block md:absolute md:right-[var(--offset)] md:bottom-[7%] md:mt-0">
-          About the studio ↗
+          About the studio ↗︎
         </Link>
       </section>
 
@@ -245,7 +245,7 @@ export default function HomePage() {
           <div className="flex flex-wrap items-center justify-between gap-5">
             <span className="label hidden sm:inline">06 / THE STUDIO</span>
             <Link href="/commission" className="btn btn-light min-w-[260px]">
-              Commission a project <span>↗</span>
+              Commission a project <span>↗︎</span>
             </Link>
           </div>
         </div>

@@ -43,7 +43,7 @@ async function WorkContent({ params }: Pick<PageProps<"/works/[slug]">, "params"
             You may also like
           </h2>
           <Link href="/shop" className="tlink">
-            Shop all works ↗
+            Shop all works ↗︎
           </Link>
         </div>
         <div className="grid gap-x-5 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">

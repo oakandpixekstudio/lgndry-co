@@ -148,7 +148,7 @@ function MenuScreen({ open, onClose }: { open: boolean; onClose: () => void }) {
                   <span className="menu-num mt-[0.7em] text-xs font-normal tracking-normal">{String(i + 1).padStart(2, "0")}</span>
                   {l.label.toUpperCase()}
                   <span aria-hidden="true" className="menu-arrow mt-[0.18em] text-[0.45em] font-normal tracking-normal">
-                    ↗
+                    ↗︎
                   </span>
                 </span>
               </Link>
@@ -290,7 +290,7 @@ function BagDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (o: bo
               <h3 className="mb-4 max-w-[300px] text-[42px] leading-[1.06] font-bold tracking-[-0.08em]">Nothing here. Yet.</h3>
               <p className="mb-6 text-[13px] text-ash">Great things start by looking closer.</p>
               <Link href="/shop" onClick={() => onOpenChange(false)} className="tlink">
-                View the collection ↗
+                View the collection ↗︎
               </Link>
             </div>
           ) : (
@@ -326,7 +326,7 @@ function BagDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (o: bo
               CHECKOUT <span>→</span>
             </Link>
             <Link href="/cart" onClick={() => onOpenChange(false)} className="btn btn-line">
-              VIEW FULL BAG <span>↗</span>
+              VIEW FULL BAG <span>↗︎</span>
             </Link>
           </div>
           <p className="mt-3.5 text-[10px] leading-relaxed text-ash">Prototype: prices are illustrative. Tax, shipping and payment are not connected.</p>

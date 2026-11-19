@@ -137,7 +137,7 @@ export function ProductView({ work }: { work: Work }) {
             </fieldset>
 
             <button className="btn btn-dark hidden w-full lg:flex" onClick={add}>
-              ADD TO BAG <span>↗</span>
+              ADD TO BAG <span>↗︎</span>
             </button>
             <p className="mt-4 text-[11px] leading-[1.6] text-ash">
               Questions about size, framing or shipping? <Link href="/contact" className="underline underline-offset-4">Ask the studio</Link>.
@@ -152,7 +152,7 @@ export function ProductView({ work }: { work: Work }) {
                 </p>
               </div>
               <button className="btn btn-dark min-h-[46px] gap-4" onClick={add}>
-                ADD <span>↗</span>
+                ADD <span>↗︎</span>
               </button>
             </div>
           </>

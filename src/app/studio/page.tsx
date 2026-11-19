@@ -76,7 +76,7 @@ export default function StudioPage() {
             <div className="absolute inset-x-6 bottom-6 text-white">
               <p className="label mb-2 opacity-80">Collect</p>
               <p className="text-[clamp(28px,3vw,44px)] leading-none font-bold tracking-[-0.07em]">Limited-edition prints</p>
-              <p className="mt-4 text-[11px] tracking-[0.06em] uppercase underline underline-offset-4">Shop the collection ↗</p>
+              <p className="mt-4 text-[11px] tracking-[0.06em] uppercase underline underline-offset-4">Shop the collection ↗︎</p>
             </div>
           </Link>
           <Link href="/commission" className="group relative block overflow-hidden">
@@ -85,7 +85,7 @@ export default function StudioPage() {
             <div className="absolute inset-x-6 bottom-6 text-white">
               <p className="label mb-2 opacity-80">Commission</p>
               <p className="text-[clamp(28px,3vw,44px)] leading-none font-bold tracking-[-0.07em]">Stories beyond the frame</p>
-              <p className="mt-4 text-[11px] tracking-[0.06em] uppercase underline underline-offset-4">Start a project ↗</p>
+              <p className="mt-4 text-[11px] tracking-[0.06em] uppercase underline underline-offset-4">Start a project ↗︎</p>
             </div>
           </Link>
         </div>

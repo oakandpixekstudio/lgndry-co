@@ -15,7 +15,7 @@ export default function NotFound() {
           Shop the collection <span>→</span>
         </Link>
         <Link href="/" className="btn btn-line">
-          Home <span>↗</span>
+          Home <span>↗︎</span>
         </Link>
       </div>
     </section>

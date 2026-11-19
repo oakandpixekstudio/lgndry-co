@@ -6,7 +6,7 @@ export function AnnouncementBar() {
       <span className="hidden sm:inline">Archival prints · Certificate with every edition</span>
       <span className="hidden text-white/30 sm:inline">/</span>
       <Link href="/collectors-editions" className="underline underline-offset-4 hover:opacity-70">
-        Collector&rsquo;s Editions — by private enquiry ↗
+        Collector&rsquo;s Editions — by private enquiry ↗︎
       </Link>
     </div>
   );

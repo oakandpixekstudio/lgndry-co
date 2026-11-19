@@ -44,7 +44,7 @@ export function CheckoutView() {
       <div className="border-t border-ink py-24">
         <h2 className="mb-5 text-[clamp(30px,4vw,56px)] leading-[1.04] font-bold tracking-[-0.08em]">Your bag is empty.</h2>
         <Link href="/shop" className="btn btn-dark min-w-[260px]">
-          View the collection <span>↗</span>
+          View the collection <span>↗︎</span>
         </Link>
       </div>
     );
@@ -58,7 +58,7 @@ export function CheckoutView() {
           This walkthrough shows the purchasing experience. No order was placed, no details were sent, and no payment was taken.
         </p>
         <Link href="/shop" className="btn btn-line mt-8 min-w-[240px]">
-          Back to the collection <span>↗</span>
+          Back to the collection <span>↗︎</span>
         </Link>
       </div>
     );

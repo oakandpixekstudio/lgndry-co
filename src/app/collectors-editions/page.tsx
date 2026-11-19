@@ -74,7 +74,7 @@ export default function CollectorsEditionsPage() {
                     </p>
                     <h2 className="heading mb-5 text-[clamp(36px,4.4vw,72px)] underline-offset-[10px] decoration-1 group-hover:underline">{w.title}</h2>
                     <p className="mb-8 max-w-[380px] text-[13px] leading-[1.75] text-[#555]">{w.summary}</p>
-                    <span className="tlink">View &amp; enquire ↗</span>
+                    <span className="tlink">View &amp; enquire ↗︎</span>
                   </div>
                   <div className="hidden self-end text-right lg:block" aria-hidden="true">
                     <p className="label mb-2 text-ash">Edition of</p>
