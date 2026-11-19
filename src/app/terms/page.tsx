@@ -22,7 +22,7 @@ export default function TermsPage() {
         },
         {
           title: "Copyright",
-          body: ["Buying a print does not transfer copyright. All images remain the property of Lgndry Content. Prints are for personal display and may not be reproduced without written permission."],
+          body: ["Buying a print does not transfer copyright. All images remain the property of LGNDRY Content. Prints are for personal display and may not be reproduced without written permission."],
         },
         {
           title: "Certificate of authenticity",
