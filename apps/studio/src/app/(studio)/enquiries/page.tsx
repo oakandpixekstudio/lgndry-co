@@ -1,24 +1,6 @@
 import type { Metadata } from "next";
-import { PhasePlaceholder } from "@/components/editorial/phase-placeholder";
+import { WorkspaceRoute } from "@/features/workspaces/components/workspace-route";
+import { enquiriesWorkspace } from "@/features/workspaces/demo-data";
 
 export const metadata: Metadata = { title: "Enquiries" };
-
-export default function EnquiriesPage() {
-  return (
-    <PhasePlaceholder
-      eyebrow="06 / ENQUIRY CASES"
-      title={
-        <>
-          Listen <em>closely.</em>
-        </>
-      }
-      sub="Structured requests with status, priority, owner and response targets."
-      phase="Phase 6 (communications and intelligence)"
-      delivers={[
-      "Website enquiries as cases with an owner and next-action date",
-      "Links to the customer, order or booking they concern",
-      "Drafts that never imply a message was sent"
-    ]}
-    />
-  );
-}
+export default function EnquiriesPage() { return <WorkspaceRoute config={enquiriesWorkspace} phase="Phase 6 (communications and intelligence)" />; }

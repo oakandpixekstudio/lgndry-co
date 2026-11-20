@@ -38,7 +38,10 @@ order leaves "Pending payment" in the browser; sales and KPI figures are hard-co
 | CSS | `styles/{tokens,typography,shell,components,intelligence}.css` |
 | other views | route shells now; real implementations in their phases |
 
-## 4. Not yet migrated
+## 4. Visual migration status
 
-Customers, orders, editions, enquiries, campaigns, insights and settings views; the record drawer; creation
-modals; filter rows. Each moves with its phase, with server-side authority replacing `localStorage`.
+Customers, orders, editions, bookings, invoices, enquiries and campaigns now have shared interactive
+list/detail previews backed only by labelled demo fixtures. Inbox has a disconnected conversation and
+reply-composer preview that cannot send. These screens intentionally do not persist mutations or claim
+provider activity. Insights and Settings remain route placeholders. Server-side authority still arrives
+in the functional phases described in `docs/11_IMPLEMENTATION_ROADMAP.md`.
