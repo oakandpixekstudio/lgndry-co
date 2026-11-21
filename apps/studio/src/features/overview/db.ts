@@ -17,13 +17,15 @@ export interface OverviewData {
 export async function fetchOverview(db: SupabaseClient, workspaceId: string): Promise<OverviewData> {
   const monthAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
   const count = (table: string) => db.from(table).select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId);
+  // consents has no workspace column of its own: it belongs to a customer, and row-level security already limits it to staff of this workspace.
+  const countConsents = () => db.from("consents").select("id", { count: "exact", head: true });
 
   const [newEnq, openEnq, customers, newCust, subs, published, drafts, recentEnq, recentCust, draftWorks] = await Promise.all([
     count("enquiries").eq("status", "new"),
     count("enquiries").neq("status", "closed"),
     count("customers").is("archived_at", null),
     count("customers").is("archived_at", null).gte("created_at", monthAgo),
-    count("consents").eq("purpose", "marketing_email").eq("granted", true).is("revoked_at", null),
+    countConsents().eq("purpose", "marketing_email").eq("granted", true).is("revoked_at", null),
     count("artworks").eq("release_status", "published"),
     count("artworks").eq("release_status", "draft"),
     db.from("enquiries").select("id, enquiry_ref, contact_name, topic, category, status, received_at").eq("workspace_id", workspaceId).order("received_at", { ascending: false }).limit(5),
@@ -32,7 +34,7 @@ export async function fetchOverview(db: SupabaseClient, workspaceId: string): Pr
   ]);
 
   const failed = [newEnq, openEnq, customers, newCust, subs, published, drafts, recentEnq, recentCust, draftWorks].find((r) => r.error);
-  if (failed?.error) throw new Error(`Could not load the overview: ${failed.error.message}`);
+  if (failed?.error) throw new Error(`Could not load the overview: ${failed.error.message || failed.error.code || "database error"}`);
 
   return {
     newEnquiries: newEnq.count ?? 0,
