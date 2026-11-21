@@ -192,3 +192,11 @@ Do not treat this document as authority to invent merchant credentials, tax stat
 - Context: docs/04 requires MFA for Owner, Admin and Finance before production financial operations.
 - Selected choice: not built yet. Supabase supports authenticator-app (TOTP) factors. It must be in place before payments or invoices go live, not before catalogue work.
 - Status: Open (launch dependency for finance features)
+
+### DEC-2026-017 — Catalogue is live: saved atomically, images split private and public
+- Date: 2026-11-21
+- Context: the Catalogue screens now read and write the real database when a staff member is signed in (they still use sample data when sign-in is not configured).
+- Proposed choice: a work is saved with one database call (`save_artwork`) so a half-saved work cannot exist; the real status is applied last so the publish guard sees a complete work. The guard now protects scheduled works too, and requires alt text on every image before a work can go live. Scheduled works appear on the website when their date arrives, without a manual step.
+- Images: the original goes straight from the browser to the private bucket. A server route then checks the person is an owner or studio manager, makes WebP copies at 800, 1600 and 2400 px (never enlarging, no camera or GPS metadata), and writes them to the public bucket with the service key. That key exists only on the server (`SUPABASE_SERVICE_ROLE_KEY`) and is used for nothing else.
+- Limits: 30 MB per image for now, so processing fits a serverless request. Larger print masters need a background worker (open item). Images removed from a work leave their files in storage; a cleanup job is a follow-up.
+- Status: Proposed

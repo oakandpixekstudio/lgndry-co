@@ -1,0 +1,12 @@
+{
+  "name": "@lgndry/database",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SQL migrations, seeds and database tests for the Studio Desk.",
+  "scripts": {
+    "test:db": "node tests/local/catalogue.test.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.17"
+  }
+}

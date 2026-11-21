@@ -7,9 +7,9 @@ import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Icon } from "@/components/icons";
 import { DeleteConfirmDialog } from "@/components/shared/crud-dialogs";
 import { formatZar } from "@/lib/format";
-import { CATEGORIES, COLLECTIONS, FRAME_SUGGESTIONS, SIZE_SUGGESTIONS } from "../demo-catalogue";
-import { centsToRand, fromPriceCents, isValidSlug, publishIssues, randToCents, slugify, statusLabel, statusTone, type IssueSection } from "../rules";
-import { deleteArtwork, saveArtwork, useCatalogue } from "../store";
+import { useCatalogueApi } from "../api";
+import { CATEGORIES, FRAME_SUGGESTIONS, SIZE_SUGGESTIONS } from "../demo-catalogue";
+import { centsToRand, fromPriceCents, isValidSlug, publishIssues, randToCents, saveProblems, slugify, statusLabel, statusTone, type IssueSection } from "../rules";
 import type { CatalogueArtwork, CatalogueImage, CatalogueVariant, ImageRole, ReleaseStatus } from "../types";
 import { EditionsSubnav } from "./editions-subnav";
 
@@ -46,7 +46,10 @@ function FocalPicker({ image, onChange }: { image: CatalogueImage; onChange: (x:
 
 function Editor({ stored }: { stored: CatalogueArtwork }) {
   const router = useRouter();
-  const { artworks } = useCatalogue();
+  const api = useCatalogueApi();
+  const { artworks } = api;
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [draft, setDraft] = useState<CatalogueArtwork>(stored);
   const [slugTouched, setSlugTouched] = useState(stored.slug !== "untitled-work" && !stored.slug.startsWith("untitled-work"));
   const [notice, setNotice] = useState<{ title: string; text: string } | null>(null);
@@ -55,6 +58,8 @@ function Editor({ stored }: { stored: CatalogueArtwork }) {
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(stored);
   const issues = useMemo(() => publishIssues(draft, artworks), [draft, artworks]);
+  const problems = useMemo(() => saveProblems(draft), [draft]);
+  const locked = !api.canEdit;
   const blocking = issues.filter((issue) => issue.blocking);
   const set = (patch: Partial<CatalogueArtwork>) => setDraft((current) => ({ ...current, ...patch }));
   const toast = (title: string, text: string) => setNotice({ title, text });
@@ -83,23 +88,30 @@ function Editor({ stored }: { stored: CatalogueArtwork }) {
   const removeImage = (id: string) => setDraft((current) => ({ ...current, images: current.images.filter((image) => image.id !== id) }));
   const addFiles = async (files: FileList | null) => {
     if (!files?.length) return;
-    const room = MAX_IMAGES - draft.images.length;
-    const picked = Array.from(files).filter((file) => file.type.startsWith("image/")).slice(0, Math.max(room, 0));
-    const read = await Promise.all(picked.map((file) => new Promise<{ name: string; url: string }>((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve({ name: file.name, url: String(reader.result) });
-      reader.readAsDataURL(file);
-    })));
-    setDraft((current) => {
-      const hasCover = current.images.some((image) => image.role === "cover");
-      const added: CatalogueImage[] = read.map((file, index) => ({
-        id: `img-${Date.now()}-${index}`, name: file.name, url: file.url, role: !hasCover && index === 0 ? "cover" : "gallery",
-        altText: "", focalX: 50, focalY: 50,
-      }));
-      return { ...current, images: [...current.images, ...added] };
-    });
+    setUploading(true);
+    const room = Math.max(MAX_IMAGES - draft.images.length, 0);
+    const picked = Array.from(files).slice(0, room);
+    const failures: string[] = [];
+    const added: CatalogueImage[] = [];
+    for (const file of picked) {
+      const result = await api.uploadImage(file);
+      if (!result.ok) {
+        failures.push(result.error);
+        continue;
+      }
+      added.push({ id: api.newId(), assetId: result.data.assetId, name: result.data.name, url: result.data.url, role: "gallery", altText: "", focalX: 50, focalY: 50 });
+    }
+    if (added.length) {
+      setDraft((current) => {
+        const hasCover = current.images.some((image) => image.role === "cover");
+        const withCover = added.map((image, index) => (!hasCover && index === 0 ? { ...image, role: "cover" as const } : image));
+        return { ...current, images: [...current.images, ...withCover] };
+      });
+    }
     if (fileRef.current) fileRef.current.value = "";
-    toast("Images added", "Demo only: real uploads keep a private print master and publish web-sized copies.");
+    setUploading(false);
+    if (failures.length) toast("Some images were not added", failures[0]!);
+    else toast("Images added", api.mode === "live" ? "The original is stored privately; visitors only see web-sized copies. Save to keep them on this work." : "Demo only: real uploads keep a private print master and publish web-sized copies.");
   };
 
   /* ───── variants ───── */
@@ -125,14 +137,25 @@ function Editor({ stored }: { stored: CatalogueArtwork }) {
       publishedAt: status === "published" ? (draft.releaseStatus === "published" ? draft.publishedAt : nowIso()) : status === "scheduled" ? (draft.publishedAt ?? tomorrowIso()) : draft.publishedAt,
     });
   };
-  const save = () => {
+  const save = async () => {
+    if (problems.length) {
+      toast("Fix this before saving", problems[0]!);
+      return;
+    }
     if (draft.releaseStatus === "published" && blocking.length) {
       toast("Cannot save a published work with gaps", "Fix the checklist, or set it back to Draft first.");
       return;
     }
-    saveArtwork(draft);
-    toast("Saved in this demo session", "Nothing has been sent to the website.");
-    if (draft.slug !== stored.slug) router.replace(`/editions/catalogue/${draft.slug}`);
+    setSaving(true);
+    const result = await api.saveArtwork(draft);
+    setSaving(false);
+    if (!result.ok) {
+      toast("Not saved", result.error);
+      return;
+    }
+    setDraft(result.data);
+    toast(api.mode === "live" ? "Saved" : "Saved in this demo session", api.mode === "live" ? "The catalogue has been updated." : "Nothing has been sent to the website.");
+    if (result.data.slug !== stored.slug) router.replace(`/editions/catalogue/${result.data.slug}`);
   };
   const discard = () => {
     setDraft(stored);
@@ -148,6 +171,8 @@ function Editor({ stored }: { stored: CatalogueArtwork }) {
       <EditionsSubnav />
       <nav className="record-breadcrumb"><Link href="/editions/catalogue"><Icon name="arrow-left" size={14} /> Back to Catalogue</Link><span>/</span><b>{draft.sku}</b></nav>
 
+      {locked ? <div className="cat-notice" role="note"><strong>View only.</strong> Only the owner and studio managers can change the catalogue.</div> : null}
+
       <header className="cat-editor-head">
         <span className="cat-thumb cat-thumb-lg">{cover ? <Image src={cover.url} alt="" fill sizes="96px" unoptimized /> : <Icon name="image" size={26} />}</span>
         <div>
@@ -157,13 +182,13 @@ function Editor({ stored }: { stored: CatalogueArtwork }) {
             {from !== null ? <> &nbsp;From <b className="tabnum">{formatZar(from)}</b></> : null}</p>
         </div>
         <div className="cat-actions">
-          <button type="button" className="button secondary" disabled={!dirty} onClick={discard}>Discard</button>
-          <button type="button" className="button" disabled={!dirty} onClick={save}>{dirty ? "Save changes" : "Saved"}</button>
+          <button type="button" className="button secondary" disabled={!dirty || saving} onClick={discard}>Discard</button>
+          <button type="button" className="button" disabled={!dirty || saving || locked} onClick={() => void save()}>{saving ? "Saving…" : dirty ? "Save changes" : "Saved"}</button>
         </div>
       </header>
 
       <div className="cat-grid">
-        <div className="cat-main">
+        <fieldset className="cat-main cat-fieldset" disabled={locked}>
           {/* ───── Details ───── */}
           <section className="cat-card" id="cat-details" aria-labelledby="cat-details-title">
             <header><span>01</span><h2 id="cat-details-title">Details</h2></header>
@@ -178,7 +203,7 @@ function Editor({ stored }: { stored: CatalogueArtwork }) {
                 <span>Collection</span>
                 <select value={draft.collectionSlug ?? ""} onChange={(event) => set({ collectionSlug: event.target.value || null })}>
                   <option value="">Choose a collection</option>
-                  {COLLECTIONS.map((collection) => <option key={collection.slug} value={collection.slug}>{collection.title}</option>)}
+                  {api.collections.map((collection) => <option key={collection.slug} value={collection.slug}>{collection.title}</option>)}
                 </select>
               </label>
               <label>
@@ -207,7 +232,7 @@ function Editor({ stored }: { stored: CatalogueArtwork }) {
           <section className="cat-card" id="cat-images" aria-labelledby="cat-images-title">
             <header>
               <span>02</span><h2 id="cat-images-title">Images</h2>
-              <button type="button" className="button secondary" onClick={() => fileRef.current?.click()} disabled={draft.images.length >= MAX_IMAGES}><Icon name="plus" size={14} /> Add images</button>
+              <button type="button" className="button secondary" onClick={() => fileRef.current?.click()} disabled={draft.images.length >= MAX_IMAGES || uploading}><Icon name="plus" size={14} /> {uploading ? "Uploading…" : "Add images"}</button>
               <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(event) => void addFiles(event.target.files)} />
             </header>
             <p className="cat-hint">The print-resolution original stays private. Visitors only ever see web-sized copies. Every image needs alt text for people who cannot see it.</p>
@@ -278,7 +303,7 @@ function Editor({ stored }: { stored: CatalogueArtwork }) {
             </div>
             <p className="cat-hint">Prices are whole rand and stored as cents. The website never sets its own prices: checkout always uses the figures saved here.</p>
           </section>
-        </div>
+        </fieldset>
 
         {/* ───── Publish readiness ───── */}
         <aside className="cat-aside" aria-label="Publishing">
@@ -286,7 +311,7 @@ function Editor({ stored }: { stored: CatalogueArtwork }) {
             <header><h2>Status</h2></header>
             <div className="cat-status-buttons" role="radiogroup" aria-label="Release status">
               {STATUSES.map((status) => (
-                <button key={status} type="button" role="radio" aria-checked={draft.releaseStatus === status} onClick={() => changeStatus(status)}>{statusLabel[status]}</button>
+                <button key={status} type="button" role="radio" aria-checked={draft.releaseStatus === status} disabled={locked} onClick={() => changeStatus(status)}>{statusLabel[status]}</button>
               ))}
             </div>
             {draft.releaseStatus === "scheduled" ? (
@@ -304,16 +329,21 @@ function Editor({ stored }: { stored: CatalogueArtwork }) {
                 ))}
               </ul>
             )}
-            {blocking.length === 0 && draft.releaseStatus !== "published" ? <button type="button" className="button cat-publish-btn" onClick={() => changeStatus("published")}>Publish now</button> : null}
-            {draft.releaseStatus === "draft" ? <button type="button" className="cat-delete" onClick={() => setConfirmDelete(true)}><Icon name="trash" size={14} /> Delete draft</button> : null}
+            {blocking.length === 0 && draft.releaseStatus !== "published" ? <button type="button" className="button cat-publish-btn" disabled={locked} onClick={() => changeStatus("published")}>Publish now</button> : null}
+            {draft.releaseStatus === "draft" && !locked ? <button type="button" className="cat-delete" onClick={() => setConfirmDelete(true)}><Icon name="trash" size={14} /> Delete draft</button> : null}
           </section>
-          <p className="cat-hint">Published works appear on the website once the database is connected. In this demo nothing is sent.</p>
+          <p className="cat-hint">{api.mode === "live" ? "Published works will appear on the website once it is connected to this catalogue." : "Published works appear on the website once the database is connected. In this demo nothing is sent."}</p>
         </aside>
       </div>
 
       {confirmDelete ? (
         <DeleteConfirmDialog entityLabel="artwork" recordLabel={draft.title || "this draft"} onCancel={() => setConfirmDelete(false)}
-          onConfirm={() => { deleteArtwork(draft.id); router.push("/editions/catalogue"); }} />
+          onConfirm={async () => {
+            const result = await api.deleteArtwork(draft.id);
+            setConfirmDelete(false);
+            if (!result.ok) return toast("Not deleted", result.error);
+            router.push("/editions/catalogue");
+          }} />
       ) : null}
       {notice ? <div className="demo-toast" role="status"><strong>{notice.title}</strong><span>{notice.text}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss">×</button></div> : null}
     </div>
@@ -321,7 +351,7 @@ function Editor({ stored }: { stored: CatalogueArtwork }) {
 }
 
 export function ArtworkEditor({ slug }: { slug: string }) {
-  const { artworks } = useCatalogue();
+  const { artworks } = useCatalogueApi();
   const hydrated = useHydrated();
   // After a rename the address changes a moment after the store does; remember which work this page is about.
   const [knownId, setKnownId] = useState<string | null>(null);

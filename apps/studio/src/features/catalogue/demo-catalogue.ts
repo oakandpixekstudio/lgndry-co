@@ -20,6 +20,7 @@ const PLACEHOLDERS = ["/artwork-placeholders/dune.svg", "/artwork-placeholders/w
 
 const cover = (id: string, title: string, n: number): CatalogueImage => ({
   id: `${id}-cover`,
+  assetId: null,
   name: `${title} (cover)`,
   url: PLACEHOLDERS[n % PLACEHOLDERS.length]!,
   role: "cover",
@@ -108,13 +109,16 @@ export const DEMO_ARTWORKS: CatalogueArtwork[] = [
 ];
 
 export const DEMO_SLOTS: MediaSlot[] = [
-  { key: "home.hero", label: "Home hero", page: "Home", ratio: "16:9", imageUrl: "/artwork-placeholders/dune.svg", altText: "A figure standing in a golden field beneath a hazy sky", focalX: 40, focalY: 50 },
-  { key: "home.intro_1", label: "Home intro, first image", page: "Home", ratio: "4:5", imageUrl: "/artwork-placeholders/waves.svg", altText: "Documentary image of a gathering beneath a clear sky", focalX: 50, focalY: 50 },
-  { key: "home.intro_2", label: "Home intro, second image", page: "Home", ratio: "4:5", imageUrl: "/artwork-placeholders/cliff.svg", altText: "Architectural form in raking light", focalX: 50, focalY: 50 },
-  { key: "studio.hero", label: "Studio page hero", page: "Studio", ratio: "3:2", imageUrl: "/artwork-placeholders/waves.svg", altText: "Movement and form documented in fine-art photography", focalX: 50, focalY: 40 },
-  { key: "commission.hero", label: "Commission page hero", page: "Commission", ratio: "3:2", imageUrl: "/artwork-placeholders/dune.svg", altText: "Commissioned visual storytelling work", focalX: 50, focalY: 50 },
-  { key: "menu.collection", label: "Menu feature image", page: "Site menu", ratio: "1:1", imageUrl: null, altText: "", focalX: 50, focalY: 50 },
+  { key: "home.hero", assetId: null, label: "Home hero", page: "Home", ratio: "16:9", imageUrl: "/artwork-placeholders/dune.svg", altText: "A figure standing in a golden field beneath a hazy sky", focalX: 40, focalY: 50 },
+  { key: "home.intro_1", assetId: null, label: "Home intro, first image", page: "Home", ratio: "4:5", imageUrl: "/artwork-placeholders/waves.svg", altText: "Documentary image of a gathering beneath a clear sky", focalX: 50, focalY: 50 },
+  { key: "home.intro_2", assetId: null, label: "Home intro, second image", page: "Home", ratio: "4:5", imageUrl: "/artwork-placeholders/cliff.svg", altText: "Architectural form in raking light", focalX: 50, focalY: 50 },
+  { key: "studio.hero", assetId: null, label: "Studio page hero", page: "Studio", ratio: "3:2", imageUrl: "/artwork-placeholders/waves.svg", altText: "Movement and form documented in fine-art photography", focalX: 50, focalY: 40 },
+  { key: "commission.hero", assetId: null, label: "Commission page hero", page: "Commission", ratio: "3:2", imageUrl: "/artwork-placeholders/dune.svg", altText: "Commissioned visual storytelling work", focalX: 50, focalY: 50 },
+  { key: "menu.collection", assetId: null, label: "Menu feature image", page: "Site menu", ratio: "1:1", imageUrl: null, altText: "", focalX: 50, focalY: 50 },
 ];
+
+/** The fixed places on the website that hold an image (labels and shapes come from the design, not the database). */
+export const SLOT_DEFINITIONS = DEMO_SLOTS.map(({ key, label, page, ratio }) => ({ key, label, page, ratio }));
 
 export const seedCatalogue = (): CatalogueState => ({
   artworks: structuredClone(DEMO_ARTWORKS),

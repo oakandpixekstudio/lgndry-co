@@ -6,9 +6,8 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Icon } from "@/components/icons";
 import { formatZar } from "@/lib/format";
-import { COLLECTIONS } from "../demo-catalogue";
 import { fromPriceCents, publishIssues, slugify, statusLabel, statusTone } from "../rules";
-import { nextSku, resetDemoCatalogue, saveArtwork, useCatalogue } from "../store";
+import { useCatalogueApi, type CatalogueApi } from "../api";
 import type { CatalogueArtwork, ReleaseStatus } from "../types";
 import { EditionsSubnav } from "./editions-subnav";
 
@@ -21,13 +20,14 @@ const FILTERS: Array<{ id: "all" | ReleaseStatus | "attention"; label: string }>
   { id: "attention", label: "Needs attention" },
 ];
 
-function newArtwork(existing: CatalogueArtwork[]): CatalogueArtwork {
-  const sku = nextSku(existing);
+function newArtwork(api: CatalogueApi): CatalogueArtwork {
+  const existing = api.artworks;
+  const sku = api.nextSku();
   const title = "Untitled work";
   let slug = slugify(title);
   for (let n = 2; existing.some((item) => item.slug === slug); n += 1) slug = `${slugify(title)}-${n}`;
   return {
-    id: `art-${Date.now()}`, sku, slug, title, collectionSlug: null, category: "Landscape", summary: "", story: "",
+    id: api.newId(), sku, slug, title, collectionSlug: null, category: "Landscape", summary: "", story: "",
     saleMode: "buy", editionKind: "open", availabilityNote: "", featured: false, showRemaining: false,
     releaseStatus: "draft", publishedAt: null, images: [], variants: [], editionRun: null,
   };
@@ -35,7 +35,10 @@ function newArtwork(existing: CatalogueArtwork[]): CatalogueArtwork {
 
 export function CatalogueIndex() {
   const router = useRouter();
-  const { artworks } = useCatalogue();
+  const api = useCatalogueApi();
+  const { artworks } = api;
+  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [query, setQuery] = useState("");
 
@@ -55,10 +58,17 @@ export function CatalogueIndex() {
     return !q || `${artwork.title} ${artwork.sku} ${artwork.slug}`.toLowerCase().includes(q);
   });
 
-  const create = () => {
-    const artwork = newArtwork(artworks);
-    saveArtwork(artwork);
-    router.push(`/editions/catalogue/${artwork.slug}`);
+  const create = async () => {
+    setError(null);
+    setCreating(true);
+    const artwork = newArtwork(api);
+    const result = await api.saveArtwork(artwork);
+    if (!result.ok) {
+      setCreating(false);
+      setError(result.error);
+      return;
+    }
+    router.push(`/editions/catalogue/${result.data.slug}`);
   };
 
   return (
@@ -70,14 +80,22 @@ export function CatalogueIndex() {
           <h1 className="workspace-title">Catalogue. <em>What the website sells.</em></h1>
           <p>Every work, its images, sizes and prices. Publish here and the website follows.</p>
         </div>
-        <button type="button" className="button workspace-primary-action" onClick={create}><Icon name="plus" size={15} /> New artwork</button>
+        {api.canEdit ? <button type="button" className="button workspace-primary-action" onClick={create} disabled={creating}><Icon name="plus" size={15} /> {creating ? "Creating…" : "New artwork"}</button> : null}
       </header>
 
-      <aside className="cat-notice" role="note">
-        <strong>Demo catalogue.</strong> Changes stay in this browser tab and do not reach the website. Titles, prices and editions are placeholders,
-        not approved figures.
-        <button type="button" onClick={resetDemoCatalogue}>Reset demo data</button>
-      </aside>
+      {api.mode === "demo" ? (
+        <aside className="cat-notice" role="note">
+          <strong>Demo catalogue.</strong> Changes stay in this browser tab and do not reach the website. Titles, prices and editions are placeholders,
+          not approved figures.
+          <button type="button" onClick={api.resetDemo}>Reset demo data</button>
+        </aside>
+      ) : (
+        <aside className="cat-notice is-live" role="note">
+          <strong>Live catalogue.</strong> {api.canEdit ? "Changes are saved to the database." : "You can look but not change it: only the owner and studio managers can edit."}{" "}
+          The website will show published works once it is connected.
+        </aside>
+      )}
+      {error ? <div className="cat-error" role="alert">{error}</div> : null}
 
       <section className="cat-stats" aria-label="Catalogue summary">
         <div><span>Published</span><strong>{counts.published}</strong></div>
@@ -116,7 +134,7 @@ export function CatalogueIndex() {
                       <span><strong>{artwork.title}</strong><small>{artwork.sku} · /{artwork.slug}</small></span>
                     </Link>
                   </td>
-                  <td>{COLLECTIONS.find((c) => c.slug === artwork.collectionSlug)?.title ?? <em className="cat-missing">None</em>}</td>
+                  <td>{api.collections.find((c) => c.slug === artwork.collectionSlug)?.title ?? <em className="cat-missing">None</em>}</td>
                   <td>{artwork.saleMode === "buy" ? "Buy online" : "Enquire"}</td>
                   <td>{artwork.editionKind === "open" ? "Open" : artwork.editionRun ? `Limited · ${artwork.editionRun.maxCopies}` : <em className="cat-missing">No run</em>}</td>
                   <td className="right tabnum">{from === null ? "On request" : formatZar(from)}</td>

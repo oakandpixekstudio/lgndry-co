@@ -10,6 +10,8 @@ export type ImageRole = "cover" | "gallery" | "detail" | "room_view";
 
 export interface CatalogueImage {
   id: string;
+  /** Live: the private master this picture comes from (web copies hang off it). Demo: null. */
+  assetId: string | null;
   name: string;
   /** Demo: a placeholder path or an in-session data URL. Real: a public web derivative of a private master. */
   url: string;
@@ -66,6 +68,7 @@ export interface CatalogueCollection {
 /** A named place on the website that shows an image, e.g. the home page hero. */
 export interface MediaSlot {
   key: string;
+  assetId: string | null;
   label: string;
   page: string;
   ratio: string;

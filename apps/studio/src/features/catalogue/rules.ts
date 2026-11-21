@@ -64,3 +64,21 @@ export function publishIssues(artwork: CatalogueArtwork, all: CatalogueArtwork[]
 
 export const statusLabel: Record<ReleaseStatus, string> = { draft: "Draft", scheduled: "Scheduled", published: "Published", retired: "Retired" };
 export const statusTone: Record<ReleaseStatus, string> = { draft: "neutral", scheduled: "info", published: "success", retired: "warning" };
+
+/** Things that make a save impossible (the database would refuse them). Drafts may be incomplete, but not broken. */
+export function saveProblems(artwork: CatalogueArtwork): string[] {
+  const problems: string[] = [];
+  if (!artwork.title.trim()) problems.push("Add a title before saving.");
+  if (!isValidSlug(artwork.slug)) problems.push("The web address can only use lowercase letters, digits and single hyphens.");
+  if (artwork.variants.some((variant) => !variant.sizeLabel.trim())) problems.push("Every size needs a name, for example A3.");
+  const seen = new Set<string>();
+  for (const variant of artwork.variants) {
+    const pair = `${variant.sizeLabel.trim().toLowerCase()}|${variant.frameOption.trim().toLowerCase()}`;
+    if (seen.has(pair)) {
+      problems.push(`Two sizes share the same size and finish (${variant.sizeLabel} ${variant.frameOption}).`);
+      break;
+    }
+    seen.add(pair);
+  }
+  return problems;
+}
