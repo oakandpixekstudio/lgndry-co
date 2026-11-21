@@ -96,6 +96,7 @@ export function StudioShell({
             menuRef={menuRef}
             dateLabel={dateLabel}
             storefrontUrl={storefrontUrl}
+            demo={demo}
           />
           <main className="workspace" id="workspace" tabIndex={-1}>
             {children}

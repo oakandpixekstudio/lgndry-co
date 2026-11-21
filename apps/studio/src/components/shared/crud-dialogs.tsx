@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 
@@ -11,12 +12,16 @@ export interface CrudField {
 }
 
 export type CrudValues = Record<string, string>;
+export interface CrudImage { id: string; name: string; url: string; role: "main" | "supporting" }
+export interface CrudMedia { images: CrudImage[] }
 
 export function CrudRecordDialog({
   mode,
   entity,
   fields,
   initialValues,
+  initialImages = [],
+  supportsMedia = false,
   onClose,
   onSave,
 }: {
@@ -25,11 +30,15 @@ export function CrudRecordDialog({
   fields: CrudField[];
   initialValues?: CrudValues;
   onClose: () => void;
-  onSave: (values: CrudValues) => void;
+  initialImages?: CrudImage[];
+  supportsMedia?: boolean;
+  onSave: (values: CrudValues, media?: CrudMedia) => void;
 }) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [values, setValues] = useState<CrudValues>(() => Object.fromEntries(fields.map((field) => [field.key, initialValues?.[field.key] ?? ""])));
+  const [images, setImages] = useState<CrudImage[]>(() => initialImages);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -40,6 +49,34 @@ export function CrudRecordDialog({
 
   const singular = entity.endsWith("ies") ? `${entity.slice(0, -3)}y` : entity.endsWith("s") ? entity.slice(0, -1) : entity;
 
+  const addImages = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const additions = await Promise.all(Array.from(files).map((file, index) => new Promise<CrudImage>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ id: `upload-${Date.now()}-${index}`, name: file.name, url: String(reader.result), role: images.length === 0 && index === 0 ? "main" : "supporting" });
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    })));
+    setImages((current) => [...current, ...additions]);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const setMainImage = (id: string) => setImages((current) => current.map((image) => ({ ...image, role: image.id === id ? "main" : "supporting" })));
+  const moveImage = (id: string, direction: -1 | 1) => setImages((current) => {
+    const index = current.findIndex((image) => image.id === id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= current.length) return current;
+    const next = [...current];
+    [next[index], next[target]] = [next[target]!, next[index]!];
+    return next;
+  });
+  const removeImage = (id: string) => setImages((current) => {
+    const removingMain = current.find((image) => image.id === id)?.role === "main";
+    const next = current.filter((image) => image.id !== id);
+    if (removingMain && next[0]) next[0] = { ...next[0], role: "main" };
+    return next;
+  });
+
   return (
     <div className="crud-scrim" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="crud-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
@@ -49,7 +86,7 @@ export function CrudRecordDialog({
           <p>{mode === "create" ? "Add a new record to this prototype workspace." : "Change the record details shown throughout this workspace."}</p>
           <button ref={closeRef} type="button" onClick={onClose} aria-label="Close dialog"><Icon name="close" size={19} /></button>
         </header>
-        <form className="crud-form" onSubmit={(event) => { event.preventDefault(); onSave(values); }}>
+        <form className="crud-form" onSubmit={(event) => { event.preventDefault(); onSave(values, { images }); }}>
           <div className="crud-form-grid">
             {fields.map((field, index) => (
               <label key={field.key} className={field.type === "textarea" ? "crud-field-wide" : undefined}>
@@ -62,6 +99,15 @@ export function CrudRecordDialog({
               </label>
             ))}
           </div>
+          {supportsMedia ? <section className="crud-media" aria-labelledby={`${titleId}-media`}>
+            <header><div><span>IMAGE SERIES</span><h3 id={`${titleId}-media`}>Main & supporting images</h3><p>Upload multiple images for this record. Choose one main image; the rest form the supporting series.</p></div><button type="button" className="button secondary" onClick={() => fileRef.current?.click()}><Icon name="image" size={15}/> Add images</button></header>
+            <input ref={fileRef} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onChange={(event) => void addImages(event.target.files)} />
+            {images.length ? <div className="crud-media-grid">{images.map((image, index) => <article key={image.id} className={image.role === "main" ? "is-main" : ""}>
+              <div><Image src={image.url} alt={image.name} fill sizes="180px" unoptimized/></div>
+              <span><b>{image.role === "main" ? "MAIN IMAGE" : `SUPPORTING ${String(index).padStart(2,"0")}`}</b><strong>{image.name}</strong></span>
+              <footer><button type="button" disabled={image.role === "main"} onClick={() => setMainImage(image.id)}>Set as main</button><button type="button" disabled={index === 0} onClick={() => moveImage(image.id, -1)} aria-label={`Move ${image.name} left`}>←</button><button type="button" disabled={index === images.length - 1} onClick={() => moveImage(image.id, 1)} aria-label={`Move ${image.name} right`}>→</button><button type="button" className="remove" onClick={() => removeImage(image.id)} aria-label={`Remove ${image.name}`}><Icon name="trash" size={13}/></button></footer>
+            </article>)}</div> : <button type="button" className="crud-media-empty" onClick={() => fileRef.current?.click()}><Icon name="image" size={28}/><strong>Upload the record image series</strong><span>PNG, JPG, WebP or AVIF · select more than one file</span></button>}
+          </section> : null}
           <footer className="crud-dialog-footer">
             <span>Prototype data · stored in this session only</span>
             <button type="button" className="button secondary" onClick={onClose}>Cancel</button>

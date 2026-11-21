@@ -13,6 +13,7 @@ export function Topbar({
   menuRef,
   dateLabel,
   storefrontUrl,
+  demo = false,
 }: {
   onMenu: () => void;
   onSearch: () => void;
@@ -20,6 +21,7 @@ export function Topbar({
   menuRef: React.RefObject<HTMLButtonElement | null>;
   dateLabel: string;
   storefrontUrl: string;
+  demo?: boolean;
 }) {
   const pathname = usePathname();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -50,6 +52,7 @@ export function Topbar({
         <span className="muted">{crumbFor(pathname)}</span>
       </div>
       <div className="top-spacer" />
+      {demo ? <span className="top-live" title="Sample data only. Nothing here is a real customer, order or payment.">DEMO DATA</span> : null}
       <button type="button" className="global-search" onClick={onSearch} aria-label="Search the studio (Ctrl K)">
         <span className="icon-slot">
           <Icon name="search" size={16} />

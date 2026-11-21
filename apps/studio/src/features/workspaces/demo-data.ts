@@ -1,6 +1,6 @@
 import type { WorkspaceConfig, WorkspaceDetail, WorkspaceRow, WorkspaceTone } from "./types";
 
-const ART = ["/artwork-placeholders/dune.svg", "/artwork-placeholders/cliff.svg", "/artwork-placeholders/waves.svg"];
+const ART = ["/artwork-placeholders/dune.svg", "/artwork-placeholders/cliff.svg", "/artwork-placeholders/waves.svg"] as const;
 
 function detail(
   metrics: WorkspaceDetail["metrics"],
@@ -21,7 +21,17 @@ function row(
   recordDetail: WorkspaceDetail,
   imageIndex = 0,
 ): WorkspaceRow {
-  return { id, title, subtitle, bucket, status, tone, cells, detail: recordDetail, image: ART[imageIndex % ART.length] };
+  const mainImage = ART[imageIndex % ART.length] ?? ART[0];
+  const supportingOne = ART[(imageIndex + 1) % ART.length] ?? ART[1];
+  const supportingTwo = ART[(imageIndex + 2) % ART.length] ?? ART[2];
+  return {
+    id, title, subtitle, bucket, status, tone, cells, detail: recordDetail, image: mainImage,
+    images: [
+      { id: `${id}-main`, name: `${title} · Main image`, url: mainImage, role: "main" },
+      { id: `${id}-support-1`, name: `${title} · Supporting image 01`, url: supportingOne, role: "supporting" },
+      { id: `${id}-support-2`, name: `${title} · Supporting image 02`, url: supportingTwo, role: "supporting" },
+    ],
+  };
 }
 
 const customerDetail = (value: string, orders: string, bookings: string, email: string, location: string) =>
@@ -145,6 +155,7 @@ export const ordersWorkspace: WorkspaceConfig = {
     { key: "items", label: "Items", align: "center" },
     { key: "value", label: "Value", align: "right" },
     { key: "payment", label: "Payment" },
+    { key: "status", label: "Fulfilment" },
     { key: "date", label: "Order date" },
   ],
   rows: [
@@ -276,7 +287,6 @@ export const bookingsWorkspace: WorkspaceConfig = {
     { key: "type", label: "Shoot type" },
     { key: "date", label: "Date" },
     { key: "value", label: "Value", align: "right" },
-    { key: "schedule", label: "Schedule" },
   ],
   rows: [
     row("BK-2026-0417", "Editorial / Coastline", "BK-2026-0417", "Confirmed", "Confirmed", "success", { client: "Michael Sinder", type: "Editorial", date: "20 Nov 2026", value: "R 48,000", schedule: "08:00–16:00" }, bookingDetail("R 48,000", "20 Nov 2026", "Confirmed"), 0),
@@ -342,6 +352,7 @@ export const invoicesWorkspace: WorkspaceConfig = {
     { key: "issue", label: "Issue date" },
     { key: "due", label: "Due date" },
     { key: "amount", label: "Amount", align: "right" },
+    { key: "paid", label: "Paid", align: "right" },
     { key: "balance", label: "Balance", align: "right" },
   ],
   rows: [

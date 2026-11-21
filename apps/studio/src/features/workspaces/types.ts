@@ -39,6 +39,7 @@ export interface WorkspaceRow {
   title: string;
   subtitle: string;
   image?: string;
+  images?: Array<{ id: string; name: string; url: string; role: "main" | "supporting" }>;
   bucket: string;
   status: string;
   tone?: WorkspaceTone;

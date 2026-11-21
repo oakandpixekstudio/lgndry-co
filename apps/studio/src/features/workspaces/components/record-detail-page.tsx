@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Icon } from "@/components/icons";
-import { CrudRecordDialog, DeleteConfirmDialog, type CrudField, type CrudValues } from "@/components/shared/crud-dialogs";
+import { CrudRecordDialog, DeleteConfirmDialog, type CrudField, type CrudMedia, type CrudValues } from "@/components/shared/crud-dialogs";
 import type { WorkspaceConfig, WorkspaceRow } from "../types";
 
 const activity = [
@@ -16,8 +16,13 @@ const activity = [
 
 function RecordOverview({ record, config }: { record: WorkspaceRow; config: WorkspaceConfig }) {
   const detail = record.detail;
+  const showGallery = ["editions", "bookings", "campaigns"].includes(config.entity);
+  const images = record.images?.length ? record.images : [{ id: `${record.id}-main`, name: `${record.title} main image`, url: record.image ?? "/artwork-placeholders/dune.svg", role: "main" as const }];
+  const [activeImage, setActiveImage] = useState(images.find((image) => image.role === "main")?.id ?? images[0]?.id ?? "");
+  const selectedImage = images.find((image) => image.id === activeImage) ?? images[0];
   return <div className="full-record-overview">
     <div className="full-record-main">
+      {showGallery ? <section className="full-record-card record-gallery"><div className="detail-section-head"><div><span>Image series</span><h2>Main & supporting images</h2></div><span>{images.length} image{images.length === 1 ? "" : "s"}</span></div><div className="record-gallery-stage">{selectedImage ? <Image src={selectedImage.url} alt={selectedImage.name} fill sizes="900px" unoptimized/> : null}<b>{selectedImage?.role === "main" ? "Main image" : "Supporting image"}</b></div><div className="record-gallery-strip">{images.map((image, index)=><button type="button" className={image.id === selectedImage?.id ? "is-active" : ""} key={image.id} onClick={()=>setActiveImage(image.id)}><span><Image src={image.url} alt="" fill sizes="120px" unoptimized/></span><small>{image.role === "main" ? "MAIN" : `SUPPORT ${String(index).padStart(2,"0")}`}</small></button>)}</div></section> : null}
       <section className="full-record-card"><div className="detail-section-head"><div><span>Primary information</span><h2>{config.entity === "customers" ? "Customer profile" : "Record details"}</h2></div><Icon name="file" size={18}/></div><dl>{detail.facts.map((fact)=><div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl></section>
       {detail.description || detail.secondaryFacts ? <section className="full-record-card"><div className="detail-section-head"><div><span>Context</span><h2>{detail.secondaryTitle ?? "Overview"}</h2></div><Icon name="layers" size={18}/></div>{detail.description?<p className="record-description">{detail.description}</p>:null}<dl>{detail.secondaryFacts?.map((fact)=><div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl>{detail.tags?<div className="record-tags">{detail.tags.map((tag)=><span key={tag}>{tag}</span>)}</div>:null}</section>:null}
       {detail.progress?<section className="full-record-card full-progress"><div className="detail-section-head"><div><span>Workflow</span><h2>Progress & milestones</h2></div><span>{detail.progress.current + 1} of {detail.progress.steps.length}</span></div><ol>{detail.progress.steps.map((step,index)=><li className={index<=detail.progress!.current?"is-complete":""} key={step}><i>{index<detail.progress!.current?"✓":String(index+1).padStart(2,"0")}</i><span><strong>{step}</strong><small>{index<=detail.progress!.current?"Completed or active":"Upcoming"}</small></span></li>)}</ol></section>:null}
@@ -42,14 +47,14 @@ export function RecordDetailPage({ config, initialRecord }: { config: WorkspaceC
   const [notice,setNotice]=useState<string|null>(null);
   const fields=useMemo<CrudField[]>(()=>[{key:"title",label:"Record title"},{key:"subtitle",label:"Supporting detail"},{key:"status",label:"Status"},{key:"bucket",label:"Type / category"},...config.columns.map((column)=>({key:`cell:${column.key}`,label:column.label}))],[config]);
   const initialValues=Object.fromEntries(fields.map((field)=>field.key.startsWith("cell:")?[field.key,record.cells[field.key.slice(5)]??""]:[field.key,String(record[field.key as keyof WorkspaceRow]??"")])) as CrudValues;
-  const save=(values:CrudValues)=>{setRecord((current)=>({...current,title:values.title||current.title,subtitle:values.subtitle||current.subtitle,status:values.status||current.status,bucket:values.bucket||current.bucket,cells:Object.fromEntries(config.columns.map((column)=>[column.key,values[`cell:${column.key}`]||current.cells[column.key]||"—"]))}));setEditOpen(false);setNotice("Record changes saved in this prototype session.")};
+  const save=(values:CrudValues,media?:CrudMedia)=>{setRecord((current)=>({...current,title:values.title||current.title,subtitle:values.subtitle||current.subtitle,status:values.status||current.status,bucket:values.bucket||current.bucket,image:media?.images.find((image)=>image.role==="main")?.url??current.image,images:media?.images??current.images,cells:Object.fromEntries(config.columns.map((column)=>[column.key,values[`cell:${column.key}`]||current.cells[column.key]||"—"]))}));setEditOpen(false);setNotice("Record changes saved in this prototype session.")};
   return <div className="full-record-page">
     <nav className="record-breadcrumb"><Link href={`/${config.entity}`}><Icon name="arrow-left" size={14}/> Back to {config.eyebrow}</Link><span>/</span><b>{record.id}</b></nav>
     <header className="full-record-hero"><div className="full-record-art"><Image src={record.image??"/artwork-placeholders/dune.svg"} alt="Sample monochrome artwork" fill sizes="220px" unoptimized/></div><div className="full-record-title"><span>{config.eyebrow.slice(0,-1)} · {record.id}</span><h1>{record.title}</h1><p>{record.subtitle}</p><div><b className={`workspace-status tone-${record.tone??"neutral"}`}>{record.status}</b><span>Last updated 18 Nov 2026 · Studio Manager</span></div></div><div className="full-record-actions"><button type="button" className="button secondary" onClick={()=>setEditOpen(true)}><Icon name="pencil" size={14}/> Edit record</button><button type="button" className="button secondary danger" onClick={()=>setDeleteOpen(true)}><Icon name="trash" size={14}/> Delete</button></div></header>
     <section className="full-record-metrics">{record.detail.metrics.map((metric)=><div key={metric.label}><span>{metric.label}</span><strong>{metric.value}</strong><small>Current record</small></div>)}</section>
     <div className="full-record-tabs" role="tablist">{config.detailTabs.map((tab,index)=><button type="button" role="tab" aria-selected={index===activeTab} key={tab} onClick={()=>setActiveTab(index)}>{tab}</button>)}</div>
     {activeTab===0?<RecordOverview record={record} config={config}/>:<RelatedWorkspace key={config.detailTabs[activeTab]} label={config.detailTabs[activeTab]??"Related"} record={record}/>} 
-    {editOpen?<CrudRecordDialog mode="edit" entity={config.entity} fields={fields} initialValues={initialValues} onClose={()=>setEditOpen(false)} onSave={save}/>:null}
+    {editOpen?<CrudRecordDialog mode="edit" entity={config.entity} fields={fields} initialValues={initialValues} initialImages={record.images} supportsMedia={["editions","bookings","campaigns"].includes(config.entity)} onClose={()=>setEditOpen(false)} onSave={save}/>:null}
     {deleteOpen?<DeleteConfirmDialog entityLabel={config.entity.slice(0,-1)} recordLabel={record.title} onCancel={()=>setDeleteOpen(false)} onConfirm={()=>router.push(`/${config.entity}`)}/>:null}
     {notice?<div className="demo-toast"><strong>Record updated</strong><span>{notice}</span><button type="button" onClick={()=>setNotice(null)}>×</button></div>:null}
   </div>;
