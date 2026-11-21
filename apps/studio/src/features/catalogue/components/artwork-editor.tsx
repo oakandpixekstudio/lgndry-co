@@ -117,11 +117,14 @@ function Editor({ stored }: { stored: CatalogueArtwork }) {
   /* ───── variants ───── */
   const patchVariant = (id: string, patch: Partial<CatalogueVariant>) =>
     setDraft((current) => ({ ...current, variants: current.variants.map((variant) => (variant.id === id ? { ...variant, ...patch } : variant)) }));
-  const addVariant = () =>
-    setDraft((current) => {
-      const n = current.variants.length + 1;
-      return { ...current, variants: [...current.variants, { id: `var-${Date.now()}`, sku: `${current.sku}-V${n}`, sizeLabel: "", frameOption: "Unframed", priceCents: null, active: true }] };
-    });
+  const addVariant = () => {
+    // The id must be a real uuid for the database; the SKU suffix comes from it, so removing a size never causes a clash.
+    const id = api.newId();
+    setDraft((current) => ({
+      ...current,
+      variants: [...current.variants, { id, sku: `${current.sku}-${id.replace(/\W/g, "").slice(-6).toUpperCase()}`, sizeLabel: "", frameOption: "Unframed", priceCents: null, active: true }],
+    }));
+  };
   const removeVariant = (id: string) => setDraft((current) => ({ ...current, variants: current.variants.filter((variant) => variant.id !== id) }));
   const setEditionKind = (editionKind: CatalogueArtwork["editionKind"]) =>
     set({ editionKind, editionRun: editionKind === "limited" ? (draft.editionRun ?? { runCode: "R1", maxCopies: 0, lowStockThreshold: 3 }) : null, ...(editionKind === "open" ? { showRemaining: false } : {}) });
