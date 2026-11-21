@@ -200,3 +200,12 @@ Do not treat this document as authority to invent merchant credentials, tax stat
 - Images: the original goes straight from the browser to the private bucket. A server route then checks the person is an owner or studio manager, makes WebP copies at 800, 1600 and 2400 px (never enlarging, no camera or GPS metadata), and writes them to the public bucket with the service key. That key exists only on the server (`SUPABASE_SERVICE_ROLE_KEY`) and is used for nothing else.
 - Limits: 30 MB per image for now, so processing fits a serverless request. Larger print masters need a background worker (open item). Images removed from a work leave their files in storage; a cleanup job is a follow-up.
 - Status: Proposed
+
+### DEC-2026-018 — The website reads the catalogue through public views, behind an explicit switch
+- Date: 2026-11-21
+- Context: the website's works, collections and page pictures were fixed in code. The Studio Desk now holds the real catalogue.
+- Proposed choice: the website reads five read-only views (`storefront_artworks`, `_artwork_images`, `_variants`, `_collections`, `_media_slots`) with the public anon key. It never touches CRM tables. The switch is `CATALOGUE_SOURCE=database`; without it the site shows the built-in prototype catalogue exactly as before, so deploying the code changes nothing by itself.
+- Behaviour: data is cached and refreshes every five minutes, or at once through `POST /api/revalidate` (shared secret). If the database cannot be read, the error is raised rather than caching an empty shop. Prices come from each work's own sizes and finishes, never from a formula. The bag stores only work, size and finish, and always prices from the live catalogue, so a price changed in the Studio Desk is the price in the bag.
+- Empty shop: with no published works the site shows empty collections and an empty shop, not the prototype works.
+- Not wired yet: the Studio Desk does not call `/api/revalidate` after publishing (so changes appear within five minutes); the "Menu feature image" slot has no place on the website yet; the checkout is still the walkthrough (no orders reach the database).
+- Status: Proposed

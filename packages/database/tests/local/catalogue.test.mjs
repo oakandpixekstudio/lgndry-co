@@ -26,7 +26,7 @@ await db.exec(`
   grant usage on schema auth to authenticated, anon;
   grant usage on schema public to authenticated, anon;
 `);
-for (const f of ["0001_core_identity", "0002_catalogue_and_media", "0003_customers_orders_storefront", "0005_publish_guard_and_grants", "0006_staff_self_read", "0007_catalogue_save_and_scheduling"]) {
+for (const f of ["0001_core_identity", "0002_catalogue_and_media", "0003_customers_orders_storefront", "0005_publish_guard_and_grants", "0006_staff_self_read", "0007_catalogue_save_and_scheduling", "0008_storefront_views_for_the_website"]) {
   try {
     await db.exec(fs.readFileSync(dir + f + ".sql", "utf8"));
     results.push(`applied ${f}`);
@@ -178,6 +178,25 @@ try {
   ok("anon cannot call save_artwork", true);
 }
 await db.exec("reset role;");
+
+// ───── what the website reads (migration 0008) ─────
+// The published work (Dune) gets two public web copies of its cover. The website must see both, tagged with the
+// picture they belong to; a collection with a live work shows without being separately published; private
+// originals never appear.
+await db.exec(`
+  insert into assets (id, workspace_id, kind, master_asset_id, bucket, object_key, mime_type, size_bytes, width_px, visibility) values
+    ('e0000000-0000-0000-0000-000000000001','${ws}','derivative','a0000000-0000-0000-0000-000000000002','artwork-public','${ws}/derivatives/b/w800.webp','image/webp',10,800,'public'),
+    ('e0000000-0000-0000-0000-000000000002','${ws}','derivative','a0000000-0000-0000-0000-000000000002','artwork-public','${ws}/derivatives/b/w1600.webp','image/webp',10,1600,'public');
+  grant select on all tables in schema public to anon;
+`);
+await db.exec("set role anon;");
+const imgRows = (await db.query("select image_id, width_px::int w, bucket from storefront_artwork_images where artwork_id = $1 order by width_px", [A1])).rows;
+const collectionSlugs = (await db.query("select slug from storefront_collections order by slug")).rows.map((x) => x.slug);
+await db.exec("reset role;");
+ok("website sees both web copies of the cover, tagged with the same picture id", imgRows.length === 2 && imgRows[0].image_id === imgRows[1].image_id, JSON.stringify(imgRows));
+ok("website never sees a private original", imgRows.length > 0 && imgRows.every((x) => x.bucket === "artwork-public"));
+ok("a collection with a live work shows without being separately published", collectionSlugs.includes("open-editions"), collectionSlugs.join(","));
+ok("a collection with no live work stays hidden", !collectionSlugs.includes("collectors-editions"), collectionSlugs.join(","));
 
 console.log(results.join("\n"));
 if (results.some((line) => line.startsWith("FAIL"))) process.exit(1);
