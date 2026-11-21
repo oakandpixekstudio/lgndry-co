@@ -3,24 +3,40 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import { resetDemoCatalogue, saveSlot, useCatalogue } from "../store";
+import { useCatalogueApi } from "../api";
 import type { MediaSlot } from "../types";
 import { EditionsSubnav } from "./editions-subnav";
 
 function SlotCard({ slot }: { slot: MediaSlot }) {
+  const api = useCatalogueApi();
   const [draft, setDraft] = useState(slot);
   const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const dirty = JSON.stringify(draft) !== JSON.stringify(slot);
   const missingAlt = Boolean(draft.imageUrl) && !draft.altText.trim();
 
-  const pick = (files: FileList | null) => {
+  const pick = async (files: FileList | null) => {
     const file = files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = () => setDraft((current) => ({ ...current, imageUrl: String(reader.result) }));
-    reader.readAsDataURL(file);
+    if (!file) return;
+    setError(null);
+    setBusy(true);
+    const result = await api.uploadImage(file);
+    setBusy(false);
     if (fileRef.current) fileRef.current.value = "";
+    if (!result.ok) return setError(result.error);
+    setDraft((current) => ({ ...current, imageUrl: result.data.url, assetId: result.data.assetId }));
+  };
+
+  const save = async () => {
+    setError(null);
+    setBusy(true);
+    const result = await api.saveSlot(draft);
+    setBusy(false);
+    if (!result.ok) return setError(result.error);
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 2200);
   };
 
   return (
@@ -50,28 +66,30 @@ function SlotCard({ slot }: { slot: MediaSlot }) {
       <p className="cat-hint">Shown at {slot.ratio}. {draft.imageUrl ? "Click the picture to keep the subject in frame." : "Add an image to fill this place."}</p>
       <label className={missingAlt ? "is-missing" : ""}>
         <span>Alt text</span>
-        <input value={draft.altText} disabled={!draft.imageUrl} placeholder="Describe what is in the picture" onChange={(event) => setDraft((current) => ({ ...current, altText: event.target.value }))} />
+        <input value={draft.altText} disabled={!draft.imageUrl || !api.canEdit} placeholder="Describe what is in the picture" onChange={(event) => setDraft((current) => ({ ...current, altText: event.target.value }))} />
       </label>
       <footer>
-        <button type="button" className="button secondary" onClick={() => fileRef.current?.click()}><Icon name="plus" size={14} /> {draft.imageUrl ? "Replace" : "Add image"}</button>
-        <input ref={fileRef} type="file" accept="image/*" hidden onChange={(event) => pick(event.target.files)} />
-        {draft.imageUrl ? <button type="button" className="button secondary" onClick={() => setDraft((current) => ({ ...current, imageUrl: null, altText: "" }))}>Clear</button> : null}
+        <button type="button" className="button secondary" disabled={!api.canEdit || busy} onClick={() => fileRef.current?.click()}><Icon name="plus" size={14} /> {busy ? "Working…" : draft.imageUrl ? "Replace" : "Add image"}</button>
+        <input ref={fileRef} type="file" accept="image/*" hidden onChange={(event) => void pick(event.target.files)} />
+        {draft.imageUrl && api.canEdit ? <button type="button" className="button secondary" onClick={() => setDraft((current) => ({ ...current, imageUrl: null, assetId: null, altText: "" }))}>Clear</button> : null}
         <span className="cat-spacer" />
         {dirty ? <button type="button" className="button secondary" onClick={() => setDraft(slot)}>Discard</button> : null}
         <button
           type="button"
           className="button"
-          disabled={!dirty || missingAlt}
+          disabled={!dirty || missingAlt || busy || !api.canEdit}
           title={missingAlt ? "Add alt text first" : undefined}
-          onClick={() => { saveSlot(draft); setSaved(true); window.setTimeout(() => setSaved(false), 2200); }}
+          onClick={() => void save()}
         >{saved ? "Saved" : "Save"}</button>
       </footer>
+      {error ? <p className="cat-error" role="alert">{error}</p> : null}
     </article>
   );
 }
 
 export function WebsiteImages() {
-  const { slots } = useCatalogue();
+  const api = useCatalogueApi();
+  const { slots } = api;
   const pages = Array.from(new Set(slots.map((slot) => slot.page)));
   const empty = slots.filter((slot) => !slot.imageUrl).length;
 
@@ -85,10 +103,16 @@ export function WebsiteImages() {
           <p>Swap the hero, intro and page images without touching code. Each place on the site has a name, and the picture in it is yours to change.</p>
         </div>
       </header>
-      <aside className="cat-notice" role="note">
-        <strong>Demo images.</strong> Changes stay in this browser tab and do not reach the website. The placeholders are sample artwork, not the final photographs.
-        <button type="button" onClick={resetDemoCatalogue}>Reset demo data</button>
-      </aside>
+      {api.mode === "demo" ? (
+        <aside className="cat-notice" role="note">
+          <strong>Demo images.</strong> Changes stay in this browser tab and do not reach the website. The placeholders are sample artwork, not the final photographs.
+          <button type="button" onClick={api.resetDemo}>Reset demo data</button>
+        </aside>
+      ) : (
+        <aside className="cat-notice is-live" role="note">
+          <strong>Live images.</strong> {api.canEdit ? "Each picture is stored privately; visitors only see web-sized copies." : "You can look but not change them: only the owner and studio managers can edit."}
+        </aside>
+      )}
       <section className="cat-stats" aria-label="Website images summary">
         <div><span>Places on the site</span><strong>{slots.length}</strong></div>
         <div><span>With an image</span><strong>{slots.length - empty}</strong></div>

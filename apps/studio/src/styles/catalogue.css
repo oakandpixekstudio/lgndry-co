@@ -159,3 +159,11 @@
 @media(prefers-reduced-motion:no-preference){
   .cat-card,.cat-slot,.cat-images article{animation:lg-row-in 560ms var(--lg-ease) both}
 }
+
+/* live mode and errors */
+.cat-notice.is-live{background:#eef5f1;border-color:#c5dccf}
+.cat-error{margin:0 0 16px;padding:11px 14px;font-size:12.5px;line-height:1.5;color:#a1271d;background:#fbf1ef;border:1px solid #e7c3be}
+.cat-slot .cat-error{margin:0}
+.cat-fieldset{border:0;padding:0;margin:0;min-width:0}
+.cat-fieldset:disabled{opacity:.78}
+.cat-card button:disabled,.cat-card .button:disabled{cursor:not-allowed}
