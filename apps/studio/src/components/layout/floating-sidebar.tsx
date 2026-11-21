@@ -60,10 +60,15 @@ export function FloatingSidebar({
         return;
       }
       indicator.style.opacity = "1";
-      indicator.style.left = `${link.offsetLeft}px`;
-      indicator.style.width = `${link.offsetWidth}px`;
-      indicator.style.height = `${link.offsetHeight}px`;
-      indicator.style.transform = `translateY(${link.offsetTop}px)`;
+      // Measure against the sidebar itself: offsetTop is relative to the nearest positioned ancestor (the nav list).
+      const rootBox = root.getBoundingClientRect();
+      const linkBox = link.getBoundingClientRect();
+      const top = linkBox.top - rootBox.top - root.clientTop + root.scrollTop;
+      const left = linkBox.left - rootBox.left - root.clientLeft;
+      indicator.style.left = `${left}px`;
+      indicator.style.width = `${linkBox.width}px`;
+      indicator.style.height = `${linkBox.height}px`;
+      indicator.style.transform = `translateY(${top}px)`;
     };
     place();
     indicator.dataset.ready = "true";
