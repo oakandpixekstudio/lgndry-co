@@ -26,7 +26,7 @@ await db.exec(`
   grant usage on schema auth to authenticated, anon;
   grant usage on schema public to authenticated, anon;
 `);
-for (const f of ["0001_core_identity", "0002_catalogue_and_media", "0003_customers_orders_storefront", "0005_publish_guard_and_grants", "0006_staff_self_read", "0007_catalogue_save_and_scheduling", "0008_storefront_views_for_the_website", "0009_website_intake"]) {
+for (const f of ["0001_core_identity", "0002_catalogue_and_media", "0003_customers_orders_storefront", "0005_publish_guard_and_grants", "0006_staff_self_read", "0007_catalogue_save_and_scheduling", "0008_storefront_views_for_the_website", "0009_website_intake", "0010_staff_add_customers"]) {
   try {
     await db.exec(fs.readFileSync(dir + f + ".sql", "utf8"));
     results.push(`applied ${f}`);
@@ -267,6 +267,52 @@ const ownerUpdates = await as(staff, async () => {
   return count("select count(*)::int c from enquiries where id = $1 and status = 'in_progress'", [enq1.id]);
 });
 ok("the owner can change an enquiry's status", ownerUpdates === 1, String(ownerUpdates));
+
+// ───── customers added by hand and archived (migration 0010) ─────
+const addCustomer = (uid, name, email) =>
+  as(uid, async () => {
+    try {
+      await db.query("insert into customers (workspace_id, display_name, primary_email_normalized, source) values ($1, $2, $3, 'manual')", [ws, name, email]);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  });
+r = await addCustomer(staff, "Walk-in Buyer", "walkin@example.com");
+ok("the owner can add a customer by hand", r.ok, r.error);
+r = await addCustomer(staff, "Walk-in Again", "walkin@example.com");
+ok("the same email cannot be added twice", !r.ok && /duplicate key|unique/i.test(r.error), r.error);
+r = await addCustomer(photog, "Sneaky Add", "sneaky-add@example.com");
+ok("a photographer cannot add a customer", !r.ok && /row-level security/i.test(r.error), r.error);
+r = await addCustomer(stranger, "Stranger Add", "stranger-add@example.com");
+ok("a non-member cannot add a customer", !r.ok && /row-level security|permission denied/i.test(r.error), r.error);
+const walkId = (await db.query("select id from customers where primary_email_normalized = 'walkin@example.com'")).rows[0].id;
+const notesSaved = await as(staff, async () => {
+  await db.query("update customers set notes = 'Prefers email', segment = 'Collector' where id = $1", [walkId]);
+  return count("select count(*)::int c from customers where id = $1 and notes = 'Prefers email'", [walkId]);
+});
+ok("the owner can save notes on a customer", notesSaved === 1, String(notesSaved));
+await as(staff, async () => db.query("update customers set archived_at = now() where id = $1", [walkId]));
+r = await addCustomer(staff, "Walk-in Returns", "walkin@example.com");
+ok("an archived customer's email can be used again", r.ok, r.error);
+const photogDeletes = await as(photog, async () => {
+  try {
+    await db.query("delete from customers where id = $1", [walkId]);
+    return "allowed";
+  } catch (e) {
+    return "refused";
+  }
+});
+ok("nobody can delete a customer through the app", photogDeletes === "refused");
+const ownerDeletes = await as(staff, async () => {
+  try {
+    await db.query("delete from customers where id = $1", [walkId]);
+    return "allowed";
+  } catch (e) {
+    return "refused";
+  }
+});
+ok("not even the owner can delete a customer (they are archived instead)", ownerDeletes === "refused");
 
 console.log(results.join("\n"));
 if (results.some((line) => line.startsWith("FAIL"))) process.exit(1);
