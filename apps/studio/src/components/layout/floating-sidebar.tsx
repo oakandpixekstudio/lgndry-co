@@ -2,15 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { ADMIN_NAV, PRIMARY_NAV, type NavCounts, type NavItem } from "@/lib/navigation";
 
-function NavLink({ item, count, onNavigate }: { item: NavItem; count?: number; onNavigate: () => void }) {
-  const pathname = usePathname();
-  const active = pathname === item.href || pathname.startsWith(item.href + "/");
+function NavLink({ item, count, active, onSelect }: { item: NavItem; count?: number; active: boolean; onSelect: (href: string) => void }) {
   return (
-    <Link href={item.href} className="nav-btn" aria-current={active ? "page" : undefined} onClick={onNavigate}>
+    <Link href={item.href} className="nav-btn" aria-current={active ? "page" : undefined} onClick={() => onSelect(item.href)}>
       <Icon name={item.icon} size={18} />
       <span className="nav-label">{item.label}</span>
       {count ? (
@@ -40,6 +38,39 @@ export function FloatingSidebar({
   onToggleCollapsed: () => void;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  // The highlight moves the instant a link is pressed instead of waiting for the next route to render.
+  const [pending, setPending] = useState<{ href: string; from: string } | null>(null);
+  const activeHref = pending && pending.from === pathname
+    ? pending.href
+    : [...PRIMARY_NAV, ...ADMIN_NAV].find((item) => pathname === item.href || pathname.startsWith(item.href + "/"))?.href ?? null;
+  const indicatorRef = useRef<HTMLSpanElement | null>(null);
+  const select = (href: string) => {
+    setPending({ href, from: pathname });
+    onClose();
+  };
+  useLayoutEffect(() => {
+    const root = sidebarRef.current;
+    const indicator = indicatorRef.current;
+    if (!root || !indicator) return;
+    const place = () => {
+      const link = root.querySelector<HTMLElement>(".nav-btn[aria-current=\"page\"]");
+      if (!link) {
+        indicator.style.opacity = "0";
+        return;
+      }
+      indicator.style.opacity = "1";
+      indicator.style.left = `${link.offsetLeft}px`;
+      indicator.style.width = `${link.offsetWidth}px`;
+      indicator.style.height = `${link.offsetHeight}px`;
+      indicator.style.transform = `translateY(${link.offsetTop}px)`;
+    };
+    place();
+    indicator.dataset.ready = "true";
+    const observer = new ResizeObserver(place);
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [activeHref, collapsed, sidebarRef]);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -62,9 +93,10 @@ export function FloatingSidebar({
         </button>
       </div>
       <div className="nav-caption"><span className="nav-caption-full">CONTROL ROOM &nbsp; / &nbsp; 001</span><span className="nav-caption-compact">001</span></div>
+      <span className="nav-indicator" ref={indicatorRef} aria-hidden="true" />
       <nav className="nav-list" aria-label="Primary navigation">
         {PRIMARY_NAV.map((item) => (
-          <NavLink key={item.href} item={item} count={counts[item.href]} onNavigate={onClose} />
+          <NavLink key={item.href} item={item} count={counts[item.href]} active={item.href === activeHref} onSelect={select} />
         ))}
       </nav>
       <div className="nav-caption" style={{ marginTop: 29 }}>
@@ -72,7 +104,7 @@ export function FloatingSidebar({
       </div>
       <nav className="nav-list" aria-label="Administration">
         {ADMIN_NAV.map((item) => (
-          <NavLink key={item.href} item={item} count={counts[item.href]} onNavigate={onClose} />
+          <NavLink key={item.href} item={item} count={counts[item.href]} active={item.href === activeHref} onSelect={select} />
         ))}
       </nav>
       <div className="side-bottom">

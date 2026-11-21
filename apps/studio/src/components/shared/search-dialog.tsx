@@ -1,5 +1,6 @@
 "use client";
 
+import { animateDialogClose } from "@/lib/dialog-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
@@ -13,6 +14,7 @@ import { ALL_NAV } from "@/lib/navigation";
 export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const scrimRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState(0);
 
@@ -27,6 +29,8 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
 
   if (!open) return null;
 
+  const close = () => animateDialogClose(scrimRef.current, onClose);
+
   const go = (href: string) => {
     onClose();
     setQuery("");
@@ -34,14 +38,14 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
   };
 
   return (
-    <div className="dialog-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="dialog-scrim" ref={scrimRef} onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <div
         className="search-box"
         role="dialog"
         aria-modal="true"
         aria-label="Search the studio"
         onKeyDown={(e) => {
-          if (e.key === "Escape") onClose();
+          if (e.key === "Escape") close();
           if (e.key === "ArrowDown") {
             e.preventDefault();
             setIndex((i) => Math.min(results.length - 1, i + 1));
@@ -66,7 +70,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
             autoComplete="off"
             aria-label="Search the studio"
           />
-          <button type="button" className="close-icon" onClick={onClose} aria-label="Close search">
+          <button type="button" className="close-icon" onClick={close} aria-label="Close search">
             <Icon name="close" size={19} />
           </button>
         </div>

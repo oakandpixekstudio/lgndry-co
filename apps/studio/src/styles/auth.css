@@ -31,7 +31,7 @@
 .sign-in-submit { height: 66px; margin-top: 2px; background: #f6f4ed; color: #101110; font-size: 17px; font-weight: 700; transition: transform .25s,box-shadow .25s,background .25s; }
 .sign-in-submit:hover { transform: translateY(-2px); background: #fff; box-shadow: 0 15px 35px rgba(0,0,0,.22); }
 .sign-in-submit:disabled { opacity: .76; }
-.sign-in-panel > small { display: block; margin-top: 27px; font-size: 9px; letter-spacing: .15em; color: rgba(255,255,255,.65); }
+.sign-in-panel > small { display: block; margin-top: 27px; font-size: 10.5px; letter-spacing: .15em; color: rgba(255,255,255,.65); }
 @keyframes sign-in-arrive { from { opacity: 0; transform: translateY(24px) scale(.985); } to { opacity: 1; transform: none; } }
 @media (max-width: 640px) { .sign-in-page { padding: 16px; align-items: end; } .sign-in-panel { padding: 38px 24px 31px; } .sign-in-panel > p { margin-bottom: 30px; } .sign-in-options { align-items: flex-start; gap: 12px; } }
 @media (prefers-reduced-motion: reduce) { .sign-in-panel { animation: none; } }

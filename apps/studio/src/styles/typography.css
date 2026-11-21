@@ -1,6 +1,6 @@
 /* Typographic roles shared across the Studio Desk. */
 .caps {
-  font-size: 10px;
+  font-size: 10.5px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   font-weight: 600;
@@ -34,7 +34,7 @@
 }
 
 .eyebrow {
-  font-size: 10px;
+  font-size: 10.5px;
   letter-spacing: 0.15em;
   font-weight: 600;
   text-transform: uppercase;
@@ -77,7 +77,7 @@
   margin: 0;
 }
 .section-index {
-  font-size: 10px;
+  font-size: 10.5px;
   letter-spacing: 0.12em;
   color: var(--lg-muted);
   margin-bottom: 9px;

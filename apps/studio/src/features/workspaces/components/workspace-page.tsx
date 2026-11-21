@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { CrudRecordDialog, DeleteConfirmDialog, type CrudField, type CrudMedia, type CrudValues } from "@/components/shared/crud-dialogs";
@@ -401,6 +402,7 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [workspaceView, setWorkspaceView] = useState<"list" | "calendar">("list");
   const [page, setPage] = useState(1);
+  const router = useRouter();
   const nextRecordNumber = useRef(config.rows.length + 1);
 
   const rows = useMemo(() => {
@@ -575,10 +577,10 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
               <thead><tr><th className="select-cell"><span className="fake-check" /></th><th>{recordHeader(config.entity)}</th>{config.columns.map((column) => <th key={column.key} className={column.align ? `align-${column.align}` : ""}>{column.label}</th>)}{hasStatusColumn ? null : <th>Status</th>}<th aria-label="Actions" /></tr></thead>
               <tbody>
                 {rows.map((item) => (
-                  <tr key={item.id} className={selected?.id === item.id ? "is-selected" : ""}>
+                  <tr key={item.id} className={selected?.id === item.id ? "is-selected" : ""} aria-selected={selected?.id === item.id} tabIndex={0} onClick={() => setSelectedId(item.id)} onDoubleClick={() => router.push(`/${config.entity}/${encodeURIComponent(item.id)}`)} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setSelectedId(item.id); } }}>
                     <td className="select-cell"><span className="fake-check" /></td>
                     <td className="record-cell">
-                      <Link href={`/${config.entity}/${encodeURIComponent(item.id)}`} onClick={() => setSelectedId(item.id)} aria-label={`Open full record for ${item.title}`}>
+                      <Link href={`/${config.entity}/${encodeURIComponent(item.id)}`} onClick={(event) => { if (event.metaKey || event.ctrlKey || event.shiftKey) return; event.preventDefault(); setSelectedId(item.id); }} aria-label={`Select ${item.title}. Double-click to open the full record`}>
                         <span className="row-thumb"><Image src={item.image ?? ART_FALLBACK} alt="" fill sizes="48px" unoptimized /></span>
                         <span><strong>{item.title}</strong><small>{item.subtitle}</small></span>
                       </Link>

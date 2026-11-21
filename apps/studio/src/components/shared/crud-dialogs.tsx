@@ -1,7 +1,8 @@
 "use client";
 
+import { animateDialogClose } from "@/lib/dialog-motion";
 import Image from "next/image";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 
 export interface CrudField {
@@ -37,15 +38,17 @@ export function CrudRecordDialog({
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const scrimRef = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => animateDialogClose(scrimRef.current, onClose), [onClose]);
   const [values, setValues] = useState<CrudValues>(() => Object.fromEntries(fields.map((field) => [field.key, initialValues?.[field.key] ?? ""])));
   const [images, setImages] = useState<CrudImage[]>(() => initialImages);
 
   useEffect(() => {
     closeRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && close();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [close]);
 
   const singular = entity.endsWith("ies") ? `${entity.slice(0, -3)}y` : entity.endsWith("s") ? entity.slice(0, -1) : entity;
 
@@ -78,13 +81,13 @@ export function CrudRecordDialog({
   });
 
   return (
-    <div className="crud-scrim" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div className="crud-scrim" ref={scrimRef} role="presentation" onMouseDown={(event) => event.target === event.currentTarget && close()}>
       <section className="crud-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <header className="crud-dialog-header">
           <div className="crud-dialog-index">{mode === "create" ? "NEW RECORD" : "EDIT RECORD"}</div>
           <h2 id={titleId}>{mode === "create" ? `Create ${singular}` : `Update ${singular}`}</h2>
           <p>{mode === "create" ? "Add a new record to this prototype workspace." : "Change the record details shown throughout this workspace."}</p>
-          <button ref={closeRef} type="button" onClick={onClose} aria-label="Close dialog"><Icon name="close" size={19} /></button>
+          <button ref={closeRef} type="button" onClick={close} aria-label="Close dialog"><Icon name="close" size={19} /></button>
         </header>
         <form className="crud-form" onSubmit={(event) => { event.preventDefault(); onSave(values, { images }); }}>
           <div className="crud-form-grid">
@@ -110,7 +113,7 @@ export function CrudRecordDialog({
           </section> : null}
           <footer className="crud-dialog-footer">
             <span>Prototype data · stored in this session only</span>
-            <button type="button" className="button secondary" onClick={onClose}>Cancel</button>
+            <button type="button" className="button secondary" onClick={close}>Cancel</button>
             <button type="submit" className="button"><Icon name={mode === "create" ? "plus" : "check"} size={15} /> {mode === "create" ? "Create record" : "Save changes"}</button>
           </footer>
         </form>
@@ -122,23 +125,25 @@ export function CrudRecordDialog({
 export function DeleteConfirmDialog({ entityLabel, recordLabel, onCancel, onConfirm }: { entityLabel: string; recordLabel: string; onCancel: () => void; onConfirm: () => void }) {
   const titleId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const scrimRef = useRef<HTMLDivElement>(null);
+  const cancel = useCallback(() => animateDialogClose(scrimRef.current, onCancel), [onCancel]);
 
   useEffect(() => {
     cancelRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onCancel();
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && cancel();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel]);
+  }, [cancel]);
 
   return (
-    <div className="crud-scrim" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onCancel()}>
+    <div className="crud-scrim" ref={scrimRef} role="presentation" onMouseDown={(event) => event.target === event.currentTarget && cancel()}>
       <section className="crud-dialog crud-confirm" role="alertdialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="crud-confirm-icon"><Icon name="alert" size={26} /></div>
         <div className="crud-dialog-index">DELETE {entityLabel.toUpperCase()}</div>
         <h2 id={titleId}>Are you sure you want to delete this?</h2>
         <p><strong>{recordLabel}</strong> will be removed from this prototype workspace. This action cannot be undone in the current session.</p>
         <footer className="crud-dialog-footer">
-          <button ref={cancelRef} type="button" className="button secondary" onClick={onCancel}>Keep record</button>
+          <button ref={cancelRef} type="button" className="button secondary" onClick={cancel}>Keep record</button>
           <button type="button" className="button danger" onClick={onConfirm}><Icon name="trash" size={15} /> Delete record</button>
         </footer>
       </section>
