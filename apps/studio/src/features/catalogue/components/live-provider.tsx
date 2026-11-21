@@ -8,6 +8,11 @@ import type { CatalogueArtwork, MediaSlot } from "../types";
 
 const notConnected = { ok: false as const, error: "The studio is not connected to the database." };
 
+/** Asks the public website to refresh. Fire and forget: it never blocks or fails a save. */
+const refreshSite = () => {
+  fetch("/api/site/refresh", { method: "POST" }).catch(() => undefined);
+};
+
 /** The real catalogue: Supabase as the signed-in person, so row-level security decides what they can change. */
 export function LiveCatalogueProvider({
   initial,
@@ -44,6 +49,7 @@ export function LiveCatalogueProvider({
             ? current.artworks.map((item) => (item.id === saved.id ? saved : item))
             : [saved, ...current.artworks],
         }));
+        refreshSite();
         return { ok: true, data: saved };
       } catch (problem) {
         return { ok: false, error: problem instanceof Error ? problem.message : "Saved, but could not reload the work." };
@@ -58,6 +64,7 @@ export function LiveCatalogueProvider({
       const { error } = await supabase.rpc("delete_draft_artwork", { p_id: id });
       if (error) return { ok: false, error: friendlyError(error) };
       setData((current) => ({ ...current, artworks: current.artworks.filter((item) => item.id !== id) }));
+      refreshSite();
       return { ok: true, data: null };
     },
     [supabase],
@@ -75,6 +82,7 @@ export function LiveCatalogueProvider({
       );
       if (error) return { ok: false, error: friendlyError(error) };
       setData((current) => ({ ...current, slots: current.slots.map((item) => (item.key === slot.key ? slot : item)) }));
+      refreshSite();
       return { ok: true, data: slot };
     },
     [supabase, workspaceId],
