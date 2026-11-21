@@ -209,3 +209,5 @@ Do not treat this document as authority to invent merchant credentials, tax stat
 - Empty shop: with no published works the site shows empty collections and an empty shop, not the prototype works.
 - Not wired yet: the Studio Desk does not call `/api/revalidate` after publishing (so changes appear within five minutes); the "Menu feature image" slot has no place on the website yet; the checkout is still the walkthrough (no orders reach the database).
 - Status: Proposed
+
+> The questions that block real orders are collected, with suggestions and a place for answers, in `docs/17_OWNER_DECISIONS.md`.
