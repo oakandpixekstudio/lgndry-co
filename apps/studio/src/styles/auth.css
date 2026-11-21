@@ -1,0 +1,37 @@
+.sign-in-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  padding: 42px 24px;
+  color: #fff;
+  background: #17201f url("/ops-login-landscape.jpg") center center / cover no-repeat;
+}
+.sign-in-shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(13,18,18,.54), rgba(18,22,21,.22) 54%, rgba(18,16,13,.33)), linear-gradient(0deg, rgba(8,9,9,.3), transparent 55%); }
+.sign-in-panel { position: relative; z-index: 1; width: min(100%, 590px); text-align: center; padding: 54px 48px 45px; background: rgba(13,17,17,.38); border: 1px solid rgba(255,255,255,.25); box-shadow: 0 28px 90px rgba(0,0,0,.28); backdrop-filter: blur(13px); animation: sign-in-arrive 900ms cubic-bezier(.22,1,.36,1) both; }
+.sign-in-brand { font-size: 43px; font-weight: 900; letter-spacing: -.08em; line-height: 1; }
+.sign-in-brand span { font-size: 18px; font-weight: 600; margin-left: 5px; vertical-align: top; letter-spacing: -.02em; }
+.sign-in-rule { width: 64px; height: 2px; background: #fff; display: block; margin: 34px auto 30px; }
+.sign-in-panel h1 { font-family: var(--font-serif), Georgia, serif; font-weight: 400; font-size: clamp(48px,6vw,68px); line-height: .94; letter-spacing: -.04em; }
+.sign-in-panel > p { font-size: 17px; margin: 14px 0 40px; color: rgba(255,255,255,.85); }
+.sign-in-panel form { display: grid; gap: 17px; }
+.sign-in-field { height: 66px; border: 1px solid rgba(255,255,255,.65); display: flex; align-items: center; gap: 17px; padding: 0 21px; background: rgba(255,255,255,.08); transition: background .2s,border-color .2s,transform .2s; }
+.sign-in-field:focus-within { background: rgba(255,255,255,.16); border-color: #fff; transform: translateY(-1px); }
+.sign-in-field input { min-width: 0; flex: 1; color: #fff; font: inherit; font-size: 16px; background: transparent; border: 0; outline: 0; }
+.sign-in-field input::placeholder { color: rgba(255,255,255,.8); }
+.sign-in-field button { color: #fff; display: grid; place-items: center; }
+.sign-in-options { display: flex; align-items: center; justify-content: space-between; font-size: 14px; margin: 6px 0 11px; }
+.sign-in-options label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.sign-in-options input { position: absolute; opacity: 0; }
+.sign-in-options label i { width: 23px; height: 23px; border: 1px solid #fff; display: grid; place-items: center; }
+.sign-in-options label i .icon { opacity: 0; }
+.sign-in-options input:checked + i .icon { opacity: 1; }
+.sign-in-options button { color: rgba(255,255,255,.82); text-decoration: underline; text-underline-offset: 4px; }
+.sign-in-submit { height: 66px; margin-top: 2px; background: #f6f4ed; color: #101110; font-size: 17px; font-weight: 700; transition: transform .25s,box-shadow .25s,background .25s; }
+.sign-in-submit:hover { transform: translateY(-2px); background: #fff; box-shadow: 0 15px 35px rgba(0,0,0,.22); }
+.sign-in-submit:disabled { opacity: .76; }
+.sign-in-panel > small { display: block; margin-top: 27px; font-size: 9px; letter-spacing: .15em; color: rgba(255,255,255,.65); }
+@keyframes sign-in-arrive { from { opacity: 0; transform: translateY(24px) scale(.985); } to { opacity: 1; transform: none; } }
+@media (max-width: 640px) { .sign-in-page { padding: 16px; align-items: end; } .sign-in-panel { padding: 38px 24px 31px; } .sign-in-panel > p { margin-bottom: 30px; } .sign-in-options { align-items: flex-start; gap: 12px; } }
+@media (prefers-reduced-motion: reduce) { .sign-in-panel { animation: none; } }

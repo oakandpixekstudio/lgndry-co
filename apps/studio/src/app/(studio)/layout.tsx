@@ -2,6 +2,8 @@ import { StudioShell } from "@/components/layout/studio-shell";
 import { getIntelligenceSnapshot } from "@/features/intelligence/queries/get-snapshot";
 import { formatTopbarDate } from "@/lib/format";
 import { isDemoMode } from "@/lib/demo-mode";
+import "../../styles/insights-dashboard.css";
+import "../../styles/settings-dashboard.css";
 
 // Operational data: always rendered per request, never statically cached.
 export const dynamic = "force-dynamic";

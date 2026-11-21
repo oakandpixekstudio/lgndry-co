@@ -14,7 +14,7 @@ export function IntelligenceHero({ longDate, demo }: { longDate: string; demo: b
         </p>
       </div>
       <figure className="ic-hero-art" style={{ margin: 0 }}>
-        <Image src="/artwork-placeholders/waves.svg" alt="Sample artwork: abstract monochrome landscape" width={900} height={250} unoptimized priority />
+        <Image src="/artwork-placeholders/waves.svg" alt="Sample artwork: abstract monochrome landscape" width={900} height={250} unoptimized loading="eager" />
         <figcaption>Sample artwork</figcaption>
       </figure>
     </header>
