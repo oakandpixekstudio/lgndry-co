@@ -1,24 +1,6 @@
 import type { Metadata } from "next";
-import { PhasePlaceholder } from "@/components/editorial/phase-placeholder";
+import { WorkspaceRoute } from "@/features/workspaces/components/workspace-route";
+import { invoicesWorkspace } from "@/features/workspaces/demo-data";
 
 export const metadata: Metadata = { title: "Invoices" };
-
-export default function InvoicesPage() {
-  return (
-    <PhasePlaceholder
-      eyebrow="05 / INVOICES & PAYMENTS"
-      title={
-        <>
-          Paid, <em>verified.</em>
-        </>
-      }
-      sub="Invoice-first purchasing: a secure payment link and QR code per invoice, marked paid only by verified payment."
-      phase="Phase 4 (invoice-first payment and documents)"
-      delivers={[
-      "Immutable issued invoices with unique serials and PDF download",
-      "Invoice-specific payment URL and QR code (never raw bank details)",
-      "Only a verified gateway webhook, or authorised reconciliation with evidence, marks an invoice paid"
-    ]}
-    />
-  );
-}
+export default function InvoicesPage() { return <WorkspaceRoute config={invoicesWorkspace} phase="Phase 4 (invoice-first payment and documents)" />; }

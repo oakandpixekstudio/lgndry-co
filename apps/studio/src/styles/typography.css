@@ -51,8 +51,9 @@
 
 .page-title {
   margin: 26px 0 17px;
+  font-family: var(--lg-sans);
   letter-spacing: -0.085em;
-  font-weight: 700;
+  font-weight: var(--lg-display-weight);
   line-height: 0.92;
   font-size: clamp(46px, 6.3vw, 94px);
 }

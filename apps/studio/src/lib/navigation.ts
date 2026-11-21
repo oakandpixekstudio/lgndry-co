@@ -29,6 +29,7 @@ export const ADMIN_NAV: NavItem[] = [
 export const ALL_NAV = [...PRIMARY_NAV, ...ADMIN_NAV];
 
 export function crumbFor(pathname: string): string {
+  if (pathname.startsWith("/notifications")) return "NOTIFICATIONS";
   const hit = ALL_NAV.find((n) => pathname === n.href || pathname.startsWith(n.href + "/"));
   return (hit?.crumb ?? "Studio Desk").toUpperCase();
 }

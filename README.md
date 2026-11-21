@@ -3,8 +3,8 @@
 Monorepo for the LGNDRY.Co **Studio Desk** CRM (`apps/studio`) and its shared packages. The public
 storefront (`apps/storefront`) is a separate repository, deployed on Vercel from GitHub.
 
-> **Status: Phase 1 in progress.** The floating-sidebar shell and the Intelligence Center screen are
-> built and run on clearly marked **demo data**. There is no database, authentication or payment
+> **Status: Phase 1 visual expansion complete.** The floating-sidebar shell, Intelligence Center and
+> operational list/detail workspaces run on clearly marked **demo data**. There is no database, authentication or payment
 > integration yet. See "What works today" below.
 
 ## Run it
@@ -26,10 +26,12 @@ on, so the app shows fictional figures (and says so) until a real database is co
 
 | Area | State |
 |---|---|
-| Floating charcoal sidebar, topbar, mobile drawer (focus management, Escape, scroll lock) | Built |
+| Floating charcoal sidebar, persistent desktop collapse, topbar, mobile drawer (focus management, Escape, scroll lock) | Built |
 | Intelligence Center (`/overview`): hero, 7 KPI cells, sales chart with accessible table, collector signals, bookings calendar, edition watch, insights, command notes | Built, **demo data only** |
 | Global search (Ctrl/Cmd+K) | Searches workspace sections only; record search needs the database |
-| Customers, Orders, Editions, Bookings, Invoices, Enquiries, Inbox, Campaigns, Insights, Settings | Real routes with an honest "not built yet" page stating the phase that delivers them |
+| Customers, Orders, Editions, Bookings, Invoices, Enquiries and Campaigns | Interactive list, filter and record-detail previews, **demo data only**; all mutations are non-persistent |
+| Inbox | Three-column conversation preview and reply composer; explicitly disconnected and unable to send |
+| Insights and Settings | Real routes with an honest "not built yet" page stating the phase that delivers them |
 | Authentication, roles, database, invoices, QR payments, webhooks, email | **Not built** (Phases 2 to 6) |
 
 Nothing on screen claims a payment was taken or an email sent. Demo figures are labelled "Demo".
