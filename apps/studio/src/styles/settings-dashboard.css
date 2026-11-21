@@ -45,19 +45,19 @@
 
 /* the section arrives: heading first, then each card, record, row and control in turn */
 @media(prefers-reduced-motion:no-preference){
-  .settings-content>*{animation:lg-row-in 640ms var(--lg-ease) backwards}
-  .settings-content>*:nth-child(2){animation-delay:70ms}.settings-content>*:nth-child(3){animation-delay:140ms}.settings-content>*:nth-child(4){animation-delay:210ms}.settings-content>*:nth-child(n+5){animation-delay:280ms}
-  .settings-cards>*,.purpose-settings>*,.purpose-columns>*,.integration-grid>*,.team-board>*,.template-gallery>*,.health-row>*{animation:lg-row-in 620ms var(--lg-ease) backwards}
-  .settings-cards>*:nth-child(2),.purpose-settings>*:nth-child(2),.purpose-columns>*:nth-child(2),.integration-grid>*:nth-child(2),.team-board>*:nth-child(2),.template-gallery>*:nth-child(2){animation-delay:90ms}
-  .settings-cards>*:nth-child(3),.purpose-settings>*:nth-child(3),.integration-grid>*:nth-child(3),.team-board>*:nth-child(3),.template-gallery>*:nth-child(3){animation-delay:180ms}
-  .integration-grid>*:nth-child(n+4),.team-board>*:nth-child(n+4),.template-gallery>*:nth-child(n+4){animation-delay:260ms}
-  .settings-record-row,.channel-row,.permission-matrix tbody tr,.people-table tbody tr,.webhook-table tbody tr{animation:lg-row-in 560ms var(--lg-ease) backwards}
-  .settings-record-row:nth-child(2),.channel-row:nth-child(2),.permission-matrix tbody tr:nth-child(2),.people-table tbody tr:nth-child(2),.webhook-table tbody tr:nth-child(2){animation-delay:60ms}
-  .settings-record-row:nth-child(3),.channel-row:nth-child(3),.permission-matrix tbody tr:nth-child(3),.people-table tbody tr:nth-child(3),.webhook-table tbody tr:nth-child(3){animation-delay:120ms}
-  .settings-record-row:nth-child(4),.permission-matrix tbody tr:nth-child(4),.people-table tbody tr:nth-child(4),.webhook-table tbody tr:nth-child(4){animation-delay:180ms}
-  .settings-record-row:nth-child(n+5),.permission-matrix tbody tr:nth-child(n+5),.people-table tbody tr:nth-child(n+5),.webhook-table tbody tr:nth-child(n+5){animation-delay:240ms}
+  .settings-content>*{animation:lg-row-in 320ms var(--lg-ease) backwards}
+  .settings-content>*:nth-child(2){animation-delay:35ms}.settings-content>*:nth-child(3){animation-delay:70ms}.settings-content>*:nth-child(4){animation-delay:105ms}.settings-content>*:nth-child(n+5){animation-delay:140ms}
+  .settings-cards>*,.purpose-settings>*,.purpose-columns>*,.integration-grid>*,.team-board>*,.template-gallery>*,.health-row>*{animation:lg-row-in 320ms var(--lg-ease) backwards}
+  .settings-cards>*:nth-child(2),.purpose-settings>*:nth-child(2),.purpose-columns>*:nth-child(2),.integration-grid>*:nth-child(2),.team-board>*:nth-child(2),.template-gallery>*:nth-child(2){animation-delay:45ms}
+  .settings-cards>*:nth-child(3),.purpose-settings>*:nth-child(3),.integration-grid>*:nth-child(3),.team-board>*:nth-child(3),.template-gallery>*:nth-child(3){animation-delay:90ms}
+  .integration-grid>*:nth-child(n+4),.team-board>*:nth-child(n+4),.template-gallery>*:nth-child(n+4){animation-delay:130ms}
+  .settings-record-row,.channel-row,.permission-matrix tbody tr,.people-table tbody tr,.webhook-table tbody tr{animation:lg-row-in 320ms var(--lg-ease) backwards}
+  .settings-record-row:nth-child(2),.channel-row:nth-child(2),.permission-matrix tbody tr:nth-child(2),.people-table tbody tr:nth-child(2),.webhook-table tbody tr:nth-child(2){animation-delay:30ms}
+  .settings-record-row:nth-child(3),.channel-row:nth-child(3),.permission-matrix tbody tr:nth-child(3),.people-table tbody tr:nth-child(3),.webhook-table tbody tr:nth-child(3){animation-delay:60ms}
+  .settings-record-row:nth-child(4),.permission-matrix tbody tr:nth-child(4),.people-table tbody tr:nth-child(4),.webhook-table tbody tr:nth-child(4){animation-delay:90ms}
+  .settings-record-row:nth-child(n+5),.permission-matrix tbody tr:nth-child(n+5),.people-table tbody tr:nth-child(n+5),.webhook-table tbody tr:nth-child(n+5){animation-delay:120ms}
   /* ticks in the permission matrix settle into place */
-  .permission-matrix td{animation:lg-tick-in 700ms var(--lg-ease) backwards;animation-delay:280ms}
+  .permission-matrix td{animation:lg-tick-in 450ms var(--lg-ease) backwards;animation-delay:140ms}
   @keyframes lg-tick-in{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
 }
 

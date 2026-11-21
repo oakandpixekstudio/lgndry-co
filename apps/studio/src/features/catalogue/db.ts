@@ -41,40 +41,45 @@ function displayUrl(masterId: string, derivatives: AssetRow[]): string | null {
 
 const baseName = (key: string) => key.split("/").pop() ?? key;
 
-/** Loads the catalogue. Pass `onlyIds` to refresh just the works that were saved. */
+/**
+ * Loads the catalogue in two trips to the database instead of six: first everything that does not depend on anything
+ * else (collections, works with their images, sizes and editions nested inside, website image slots), all at once;
+ * then the files those pictures point at. Pass `onlyIds` to refresh just the works that were saved.
+ */
 export async function fetchCatalogue(db: SupabaseClient, workspaceId: string, onlyIds?: string[]): Promise<CatalogueData> {
   const fail = (what: string, message: string) => new Error(`Could not load ${what}: ${message}`);
 
-  const collectionsRes = await db.from("collections").select("id, slug, title, sort_order").eq("workspace_id", workspaceId).order("sort_order");
+  let artworkQuery = db
+    .from("artworks")
+    .select("*, artwork_images(*), artwork_variants(*), edition_runs(*)")
+    .eq("workspace_id", workspaceId)
+    .is("edition_runs.retired_at", null)
+    .order("created_at", { ascending: false })
+    .order("sort_order", { referencedTable: "artwork_images" })
+    .order("created_at", { referencedTable: "artwork_variants" });
+  if (onlyIds) artworkQuery = artworkQuery.in("id", onlyIds);
+
+  const [collectionsRes, artworkRes, slotRes] = await Promise.all([
+    db.from("collections").select("id, slug, title, sort_order").eq("workspace_id", workspaceId).order("sort_order"),
+    artworkQuery,
+    onlyIds
+      ? Promise.resolve({ data: [] as SlotRow[], error: null })
+      : db.from("media_slots").select("slot_key, asset_id, alt_text, focal_x, focal_y").eq("workspace_id", workspaceId),
+  ]);
   if (collectionsRes.error) throw fail("collections", collectionsRes.error.message);
+  if (artworkRes.error) throw fail("works", artworkRes.error.message);
+  if (slotRes.error) throw fail("website images", slotRes.error.message);
+
   const collectionRows = (collectionsRes.data ?? []) as Array<{ id: string; slug: string; title: string }>;
   const collections = collectionRows.map(({ slug, title }) => ({ slug, title }));
   const slugById = new Map(collectionRows.map((row) => [row.id, row.slug]));
 
-  let artworkQuery = db.from("artworks").select("*").eq("workspace_id", workspaceId).order("created_at", { ascending: false });
-  if (onlyIds) artworkQuery = artworkQuery.in("id", onlyIds);
-  const artworkRes = await artworkQuery;
-  if (artworkRes.error) throw fail("works", artworkRes.error.message);
-  const artworkRows = (artworkRes.data ?? []) as ArtworkRow[];
-  const ids = artworkRows.map((row) => row.id);
-
-  const slotRes = onlyIds ? { data: [] as SlotRow[], error: null } : await db.from("media_slots").select("slot_key, asset_id, alt_text, focal_x, focal_y").eq("workspace_id", workspaceId);
-  if (slotRes.error) throw fail("website images", slotRes.error.message);
+  type ArtworkWithChildren = ArtworkRow & { artwork_images: ImageRow[]; artwork_variants: VariantRow[]; edition_runs: RunRow[] };
+  const artworkRows = (artworkRes.data ?? []) as unknown as ArtworkWithChildren[];
+  const imageRows = artworkRows.flatMap((row) => row.artwork_images ?? []);
+  const variantRows = artworkRows.flatMap((row) => row.artwork_variants ?? []);
+  const runRows = artworkRows.flatMap((row) => row.edition_runs ?? []);
   const slotRows = (slotRes.data ?? []) as SlotRow[];
-
-  const [imageRes, variantRes, runRes] = ids.length
-    ? await Promise.all([
-        db.from("artwork_images").select("*").in("artwork_id", ids).order("sort_order"),
-        db.from("artwork_variants").select("*").in("artwork_id", ids).order("created_at"),
-        db.from("edition_runs").select("*").in("artwork_id", ids).is("retired_at", null),
-      ])
-    : [{ data: [], error: null }, { data: [], error: null }, { data: [], error: null }];
-  if (imageRes.error) throw fail("images", imageRes.error.message);
-  if (variantRes.error) throw fail("sizes", variantRes.error.message);
-  if (runRes.error) throw fail("editions", runRes.error.message);
-  const imageRows = (imageRes.data ?? []) as ImageRow[];
-  const variantRows = (variantRes.data ?? []) as VariantRow[];
-  const runRows = (runRes.data ?? []) as RunRow[];
 
   const masterIds = [...new Set([...imageRows.map((row) => row.asset_id), ...slotRows.map((row) => row.asset_id).filter((id): id is string => !!id)])];
   let assets: AssetRow[] = [];
