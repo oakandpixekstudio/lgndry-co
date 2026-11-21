@@ -7,11 +7,38 @@ import { KpiRail } from "@/features/intelligence/components/kpi-rail";
 import { SalesPanel } from "@/features/intelligence/components/sales-panel";
 import { SignalPanel } from "@/features/intelligence/components/signal-panel";
 import { getIntelligenceSnapshot } from "@/features/intelligence/queries/get-snapshot";
+import { getStaffContext } from "@/features/auth/staff";
+import { fetchOverview, type OverviewData } from "@/features/overview/db";
+import { OverviewLive } from "@/features/overview/overview-live";
 import { formatLongDate } from "@/lib/format";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Intelligence Center" };
 
 export default async function OverviewPage() {
+  const context = await getStaffContext();
+  if (context.status === "ok") {
+    const supabase = await createSupabaseServerClient();
+    let data: OverviewData | null = null;
+    let problem = "";
+    if (supabase) {
+      try {
+        data = await fetchOverview(supabase, context.staff.workspaceId);
+      } catch (error) {
+        problem = error instanceof Error ? error.message : "";
+      }
+    }
+    if (!data) {
+      return (
+        <div className="cat-page">
+          <div className="cat-empty-box" role="alert">The overview could not be loaded. {problem} Check that migrations 0001 to 0010 have been applied, then reload.</div>
+        </div>
+      );
+    }
+    const role = context.staff.role;
+    return <OverviewLive data={data} canSeeEnquiries={role === "owner" || role === "studio_manager" || role === "finance"} />;
+  }
+
   const result = await getIntelligenceSnapshot();
   const now = new Date();
 
