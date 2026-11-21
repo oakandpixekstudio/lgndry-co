@@ -5,8 +5,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Photo } from "@/components/photo";
-import { COLLECTIONS, WORKS, getWork, imageUrl, money, priceLabel } from "@/lib/catalogue";
-import { lineTotal, removeLine, setQty, useCart } from "@/lib/cart-store";
+import { imageUrl, money, priceLabel } from "@/lib/catalogue";
+import { useCatalogue } from "@/lib/catalogue-context";
+import { removeLine, setQty, useCart } from "@/lib/cart-store";
 import { MENU_LINKS, NAV, POLICY_LINKS, SITE } from "@/lib/site";
 import { setBagOpen, useBagOpen } from "@/lib/ui-store";
 import { cn } from "@/lib/utils";
@@ -137,6 +138,7 @@ function ScreenShell({ open, label, onClose, children }: { open: boolean; label:
 }
 
 function MenuScreen({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { collections: COLLECTIONS } = useCatalogue();
   return (
     <ScreenShell open={open} label="Site navigation" onClose={onClose}>
       <div className="grid min-h-[72vh] items-center gap-12 px-[var(--offset)] pb-16 lg:grid-cols-[1fr_320px]">
@@ -194,6 +196,7 @@ function MenuScreen({ open, onClose }: { open: boolean; onClose: () => void }) {
 }
 
 function SearchScreen({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: (q: string) => void }) {
+  const { works: WORKS, collections: COLLECTIONS } = useCatalogue();
   const [q, setQ] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -208,7 +211,7 @@ function SearchScreen({ open, onClose, onSubmit }: { open: boolean; onClose: () 
     const term = q.trim().toLowerCase();
     if (!term) return [];
     return WORKS.filter((w) => `${w.title} ${w.category} ${w.summary} ${w.collection.replace("-", " ")}`.toLowerCase().includes(term)).slice(0, 4);
-  }, [q]);
+  }, [q, WORKS]);
 
   return (
     <ScreenShell open={open} label="Search artworks" onClose={onClose}>
@@ -271,7 +274,8 @@ function SearchScreen({ open, onClose, onSubmit }: { open: boolean; onClose: () 
 }
 
 function BagDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
-  const { lines, count, subtotal } = useCart();
+  const { lines, count, subtotal, lineTotal } = useCart();
+  const { getWork } = useCatalogue();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

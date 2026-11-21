@@ -4,6 +4,7 @@ import { PageIntro } from "@/components/page-intro";
 import { Photo } from "@/components/photo";
 import { Reveal } from "@/components/reveal";
 import { imageUrl } from "@/lib/catalogue";
+import { getCatalogue } from "@/lib/catalogue-source";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -17,7 +18,12 @@ const PRINCIPLES = [
   { t: "Made to last", d: "Each photograph is finished for the wall: archival materials, careful framing and a certificate that outlives the sale." },
 ];
 
-export default function StudioPage() {
+export default async function StudioPage() {
+  const { slotImage } = await getCatalogue();
+  // Pictures the studio can change from the Studio Desk (Editions > Website images); the built-in ones show until then.
+  const portrait = slotImage("studio.hero", { file: "about-hero.webp", alt: "Movement and form documented in fine-art photography" });
+  const second = slotImage("home.intro_2", { file: "home-intro-2.webp", alt: "" });
+  const third = slotImage("commission.hero", { file: "services-hero.webp", alt: "" });
   return (
     <>
       <PageIntro
@@ -37,7 +43,7 @@ export default function StudioPage() {
       <section className="px-[var(--offset)] pb-[100px]">
         <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr] lg:items-end">
           <Reveal>
-            <Photo src={imageUrl("about-hero.webp")} alt="Movement and form documented in fine-art photography" tone="form" className="aspect-[4/5]" sizes="(max-width: 1024px) 100vw, 45vw" />
+            <Photo src={imageUrl(portrait.src)} alt={portrait.alt} focal={portrait.focal} tone="form" className="aspect-[4/5]" sizes="(max-width: 1024px) 100vw, 45vw" />
           </Reveal>
           <div className="max-w-[560px] space-y-6 pb-4 text-[15px] leading-[1.8]">
             <p className="text-[clamp(22px,2.4vw,34px)] leading-[1.15] font-bold tracking-[-0.05em]">
@@ -71,7 +77,7 @@ export default function StudioPage() {
         </h2>
         <div className="grid gap-5 md:grid-cols-2">
           <Link href="/shop" className="group relative block overflow-hidden">
-            <Photo src={imageUrl("home-intro-2.webp")} alt="" tone="structure" className="aspect-[4/3]" sizes="50vw" zoom />
+            <Photo src={imageUrl(second.src)} alt={second.alt} focal={second.focal} tone="structure" className="aspect-[4/3]" sizes="50vw" zoom />
             <div className="absolute inset-0 bg-gradient-to-t from-black/65 to-transparent" />
             <div className="absolute inset-x-6 bottom-6 text-white">
               <p className="label mb-2 opacity-80">Collect</p>
@@ -80,7 +86,7 @@ export default function StudioPage() {
             </div>
           </Link>
           <Link href="/commission" className="group relative block overflow-hidden">
-            <Photo src={imageUrl("services-hero.webp")} alt="" tone="earth" className="aspect-[4/3]" sizes="50vw" zoom />
+            <Photo src={imageUrl(third.src)} alt={third.alt} focal={third.focal} tone="earth" className="aspect-[4/3]" sizes="50vw" zoom />
             <div className="absolute inset-0 bg-gradient-to-t from-black/65 to-transparent" />
             <div className="absolute inset-x-6 bottom-6 text-white">
               <p className="label mb-2 opacity-80">Commission</p>

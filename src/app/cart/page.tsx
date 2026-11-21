@@ -4,12 +4,13 @@ import { CheckoutSteps } from "@/components/checkout-steps";
 import { PageIntro } from "@/components/page-intro";
 import { ServiceStrip } from "@/components/service-strip";
 import { WorkCard } from "@/components/work-card";
-import { WORKS } from "@/lib/catalogue";
+import { getCatalogue } from "@/lib/catalogue-source";
 
 export const metadata: Metadata = { title: "Your bag" };
 
-export default function CartPage() {
-  const suggestions = WORKS.filter((w) => w.mode === "buy").slice(0, 3);
+export default async function CartPage() {
+  const { works } = await getCatalogue();
+  const suggestions = works.filter((w) => w.mode === "buy").slice(0, 3);
   return (
     <>
       <PageIntro crumbs={[{ label: "Home", href: "/" }, { label: "Bag" }]} title="YOUR BAG." size="md" />

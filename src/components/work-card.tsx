@@ -31,7 +31,7 @@ export function WorkCard({
         <div className="relative">
           <Photo
             src={imageUrl(work.image)}
-            alt={`${work.title}: ${work.summary}`}
+            alt={work.imageAlt ?? `${work.title}: ${work.summary}`}
             tone={work.tone}
             focal={work.focal}
             className={cn("ph", aspect ?? "aspect-[3/3.7]")}

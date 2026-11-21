@@ -5,7 +5,8 @@ import { CollectorEnquiryForm } from "@/components/enquiry-forms";
 import { PageIntro } from "@/components/page-intro";
 import { Photo } from "@/components/photo";
 import { Reveal } from "@/components/reveal";
-import { editionLabel, imageUrl, worksByCollection } from "@/lib/catalogue";
+import { editionLabel, imageUrl } from "@/lib/catalogue";
+import { getCatalogue } from "@/lib/catalogue-source";
 
 export const metadata: Metadata = {
   title: "Collector's Editions",
@@ -28,7 +29,8 @@ const FAQ = [
   { q: "Do you arrange framing and delivery?", a: "Yes. Each Collector's Edition is framed and packed by the studio and delivered with tracking." },
 ];
 
-export default function CollectorsEditionsPage() {
+export default async function CollectorsEditionsPage() {
+  const { worksByCollection } = await getCatalogue();
   const works = worksByCollection("collectors-editions");
 
   return (
@@ -61,7 +63,7 @@ export default function CollectorsEditionsPage() {
                   <p className="label hidden md:block">{String(i + 1).padStart(2, "0")}</p>
                   <Photo
                     src={imageUrl(w.image)}
-                    alt={`${w.title}: ${w.summary}`}
+                    alt={w.imageAlt ?? `${w.title}: ${w.summary}`}
                     tone={w.tone}
                     focal={w.focal}
                     className="aspect-[4/3]"
