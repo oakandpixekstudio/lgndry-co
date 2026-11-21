@@ -220,3 +220,10 @@ Do not treat this document as authority to invent merchant credentials, tax stat
 - Open (docs/17 C3): the privacy notice is not approved, so newsletter consent is recorded with no policy version, and there is no unsubscribe link yet. Do not send marketing email until both exist.
 - Not built yet: email notification to the studio when an enquiry arrives; replies from inside the Inbox (the screen offers "Reply by email").
 - Status: Proposed
+
+### DEC-2026-020 — Customers screen reads and writes the real database
+- Date: 2026-11-22
+- Context: the Customers screen showed sample data only.
+- Proposed choice: signed-in staff see the real customers (website enquirers, newsletter subscribers, people added by hand) with their enquiries and whether they hold a marketing-email consent. Owners and studio managers can add a customer, edit notes and archive or restore. Nobody can delete: orders and invoices must always point at someone. Migration 0010 adds the missing insert permission for those two roles. Phone numbers are stored in international form (a 10-digit South African number is converted to +27).
+- Not built yet: orders and lifetime value (no orders exist), merging duplicate customers, export of a customer's data (docs/17 C3).
+- Status: Proposed
