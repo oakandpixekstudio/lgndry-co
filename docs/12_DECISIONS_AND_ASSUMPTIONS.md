@@ -211,3 +211,12 @@ Do not treat this document as authority to invent merchant credentials, tax stat
 - Status: Proposed
 
 > The questions that block real orders are collected, with suggestions and a place for answers, in `docs/17_OWNER_DECISIONS.md`.
+
+### DEC-2026-019 — Website forms are filed in the CRM through server-only functions
+- Date: 2026-11-22
+- Context: the website's enquiry, contact, commission and newsletter forms showed a success message but sent nothing.
+- Proposed choice: each form posts to a route on the website's own server. The route checks the post came from this site, silently drops obvious bots (a hidden trap field and a two-second minimum), then calls a database function with the service key. Two functions (`intake_enquiry`, `intake_newsletter`) can be run by the service role only, check every field again, refuse floods (5 per email, 10 per visitor, 300 overall, per hour) and create or reuse the customer. The visitor's address is stored only as a one-way hash, to refuse floods. The CRM Enquiries screen shows them live, newest first; owners and studio managers can change status.
+- Honesty: without `SUPABASE_SERVICE_ROLE_KEY` on the website the forms tell the visitor to email the studio, instead of pretending to succeed.
+- Open (docs/17 C3): the privacy notice is not approved, so newsletter consent is recorded with no policy version, and there is no unsubscribe link yet. Do not send marketing email until both exist.
+- Not built yet: email notification to the studio when an enquiry arrives; replies from inside the Inbox (the screen offers "Reply by email").
+- Status: Proposed

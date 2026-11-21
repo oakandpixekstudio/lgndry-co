@@ -26,7 +26,7 @@ await db.exec(`
   grant usage on schema auth to authenticated, anon;
   grant usage on schema public to authenticated, anon;
 `);
-for (const f of ["0001_core_identity", "0002_catalogue_and_media", "0003_customers_orders_storefront", "0005_publish_guard_and_grants", "0006_staff_self_read", "0007_catalogue_save_and_scheduling", "0008_storefront_views_for_the_website"]) {
+for (const f of ["0001_core_identity", "0002_catalogue_and_media", "0003_customers_orders_storefront", "0005_publish_guard_and_grants", "0006_staff_self_read", "0007_catalogue_save_and_scheduling", "0008_storefront_views_for_the_website", "0009_website_intake"]) {
   try {
     await db.exec(fs.readFileSync(dir + f + ".sql", "utf8"));
     results.push(`applied ${f}`);
@@ -197,6 +197,76 @@ ok("website sees both web copies of the cover, tagged with the same picture id",
 ok("website never sees a private original", imgRows.length > 0 && imgRows.every((x) => x.bucket === "artwork-public"));
 ok("a collection with a live work shows without being separately published", collectionSlugs.includes("open-editions"), collectionSlugs.join(","));
 ok("a collection with no live work stays hidden", !collectionSlugs.includes("collectors-editions"), collectionSlugs.join(","));
+
+// ───── website enquiries and newsletter (migration 0009) ─────
+// Only the website's server (service role) may call the intake functions. Everything else is refused.
+const intake = async (role, fn, payload) => {
+  await db.exec(`set role ${role};`);
+  try {
+    const r = await db.query(`select public.${fn}($1::jsonb) as v`, [JSON.stringify(payload)]);
+    return { ok: true, v: r.rows[0].v };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  } finally {
+    await db.exec("reset role;");
+  }
+};
+const visitor = (over = {}) => ({ name: "Thandi Nkosi", email: "Thandi@Example.com ", message: "Is this still available?", category: "availability", artwork_slug: "dune", ip_hash: "ip-1", ...over });
+
+r = await intake("service_role", "intake_enquiry", visitor());
+ok("a valid enquiry is accepted and gets a reference", r.ok && /^ENQ-\d{4}-0001$/.test(r.v), r.error ?? r.v);
+const enq1 = (await db.query("select * from enquiries where enquiry_ref = $1", [r.v])).rows[0];
+ok("the email is stored lower-case and trimmed, status is new, source is website", enq1?.contact_email === "thandi@example.com" && enq1.status === "new" && enq1.source === "website");
+ok("the enquiry is linked to the work it was about", enq1?.artwork_id === A1);
+ok("a customer was created for the visitor", (await count("select count(*)::int c from customers where primary_email_normalized = 'thandi@example.com'")) === 1);
+
+r = await intake("service_role", "intake_enquiry", visitor({ message: "Second question", ip_hash: "ip-2" }));
+ok("a second enquiry reuses the same customer", r.ok && (await count("select count(*)::int c from customers where primary_email_normalized = 'thandi@example.com'")) === 1, r.error);
+ok("the second enquiry gets the next reference", r.ok && /-0002$/.test(r.v), r.v);
+
+for (const [label, patch] of [["a bad email", { email: "not-an-email" }], ["a missing name", { name: "  " }], ["an empty message", { message: "" }], ["a message over 5000 characters", { message: "x".repeat(5001) }]]) {
+  r = await intake("service_role", "intake_enquiry", visitor({ ...patch, email: patch.email ?? "other@example.com", ip_hash: "ip-3" }));
+  ok(`${label} is refused`, !r.ok && /invalid_input/.test(r.error), r.error);
+}
+r = await intake("service_role", "intake_enquiry", visitor({ category: "mystery", email: "cat@example.com", ip_hash: "ip-4" }));
+ok("an unknown category falls back to general", r.ok && (await count("select count(*)::int c from enquiries where enquiry_ref = $1 and category = 'general'", [r.v])) === 1, r.error);
+
+for (let i = 0; i < 3; i++) await intake("service_role", "intake_enquiry", visitor({ ip_hash: "ip-5" })); // thandi: now at 5 in the hour
+r = await intake("service_role", "intake_enquiry", visitor({ ip_hash: "ip-6" }));
+ok("a sixth enquiry from one email in an hour is refused", !r.ok && /rate_limited/.test(r.error), r.error);
+for (let i = 0; i < 10; i++) await intake("service_role", "intake_enquiry", visitor({ email: `flood${i}@example.com`, ip_hash: "ip-flood" }));
+r = await intake("service_role", "intake_enquiry", visitor({ email: "flood-more@example.com", ip_hash: "ip-flood" }));
+ok("an eleventh enquiry from one visitor in an hour is refused", !r.ok && /rate_limited/.test(r.error), r.error);
+
+for (const role of ["anon", "authenticated"]) {
+  r = await intake(role, "intake_enquiry", visitor({ email: "sneaky@example.com", ip_hash: "ip-7" }));
+  ok(`${role} cannot submit an enquiry directly`, !r.ok && /permission denied/i.test(r.error), r.error);
+  r = await intake(role, "intake_newsletter", { email: "sneaky@example.com" });
+  ok(`${role} cannot sign anyone up directly`, !r.ok && /permission denied/i.test(r.error), r.error);
+}
+
+r = await intake("service_role", "intake_newsletter", { email: "Reader@Example.com", ip_hash: "ip-8" });
+ok("a newsletter sign-up is accepted", r.ok, r.error);
+r = await intake("service_role", "intake_newsletter", { email: "reader@example.com", ip_hash: "ip-8" });
+ok("signing up twice records consent once", r.ok && (await count("select count(*)::int c from consents c join customers u on u.id = c.customer_id where u.primary_email_normalized = 'reader@example.com' and c.purpose = 'marketing_email'")) === 1, r.error);
+r = await intake("service_role", "intake_newsletter", { email: "nope" });
+ok("a bad newsletter email is refused", !r.ok && /invalid_input/.test(r.error), r.error);
+r = await intake("service_role", "intake_enquiry", visitor({ name: "Reader Reed", email: "reader@example.com", ip_hash: "ip-9" }));
+ok("an enquiry from a newsletter subscriber adds their real name, no duplicate customer",
+  r.ok && (await count("select count(*)::int c from customers where primary_email_normalized = 'reader@example.com'")) === 1
+  && (await count("select count(*)::int c from customers where primary_email_normalized = 'reader@example.com' and display_name = 'Reader Reed'")) === 1, r.error);
+
+const ownerSees = await as(staff, async () => count("select count(*)::int c from enquiries"));
+ok("the owner can read enquiries", ownerSees >= 5, String(ownerSees));
+const photogSees = await as(photog, async () => count("select count(*)::int c from enquiries"));
+ok("a photographer cannot read enquiries", photogSees === 0, String(photogSees));
+const strangerSees = await as(stranger, async () => count("select count(*)::int c from enquiries"));
+ok("a non-member cannot read enquiries", strangerSees === 0, String(strangerSees));
+const ownerUpdates = await as(staff, async () => {
+  await db.query("update enquiries set status = 'in_progress' where id = $1", [enq1.id]);
+  return count("select count(*)::int c from enquiries where id = $1 and status = 'in_progress'", [enq1.id]);
+});
+ok("the owner can change an enquiry's status", ownerUpdates === 1, String(ownerUpdates));
 
 console.log(results.join("\n"));
 if (results.some((line) => line.startsWith("FAIL"))) process.exit(1);
