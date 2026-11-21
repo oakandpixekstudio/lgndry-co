@@ -284,7 +284,7 @@ html{scrollbar-width:thin;scrollbar-color:#c9c8c1 transparent}
 .nav-btn{transition:color 320ms cubic-bezier(.22,1,.36,1),background 320ms ease,padding 560ms cubic-bezier(.22,1,.36,1),gap 560ms cubic-bezier(.22,1,.36,1)}
 .nav-btn .icon,.nav-count{transition:opacity 320ms ease,color 320ms ease,border-color 320ms ease}
 @keyframes lg-page-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-.workspace>*{animation:lg-page-in 640ms cubic-bezier(.22,1,.36,1) both}
+.workspace>*{animation:lg-page-in 640ms cubic-bezier(.22,1,.36,1) backwards}
 .workspace>*:nth-child(2){animation-delay:60ms}.workspace>*:nth-child(3){animation-delay:120ms}.workspace>*:nth-child(4){animation-delay:180ms}.workspace>*:nth-child(n+5){animation-delay:240ms}
 @media(prefers-reduced-motion:reduce){.nav-indicator[data-ready="true"]{transition:none}.workspace>*{animation:none}}
 
@@ -305,18 +305,18 @@ html{scrollbar-width:thin;scrollbar-color:#c9c8c1 transparent}
 .workspace-table tbody tr.is-selected td:first-child,.workspace-table tbody tr.is-selected th:first-child{box-shadow:inset 3px 0 0 0 #111}
 .workspace-table tbody tr:hover{background:rgba(255,255,255,.55)}
 .workspace-table tbody tr.is-selected{background:rgba(255,255,255,.8)}
-.workspace-table tbody tr{animation:lg-row-in 520ms var(--lg-ease) both}
+.workspace-table tbody tr{animation:lg-row-in 520ms var(--lg-ease) backwards}
 @keyframes lg-row-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .workspace-table tbody tr:nth-child(2){animation-delay:30ms}.workspace-table tbody tr:nth-child(3){animation-delay:60ms}.workspace-table tbody tr:nth-child(4){animation-delay:90ms}.workspace-table tbody tr:nth-child(5){animation-delay:120ms}.workspace-table tbody tr:nth-child(6){animation-delay:150ms}.workspace-table tbody tr:nth-child(7){animation-delay:180ms}.workspace-table tbody tr:nth-child(n+8){animation-delay:210ms}
 /* record panel switching */
 @keyframes lg-panel-in{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
-.record-panel-body{animation:lg-panel-in 560ms var(--lg-ease) both}
-.record-panel .record-art{animation:lg-art-in 900ms var(--lg-ease) both}
+.record-panel-body{animation:lg-panel-in 560ms var(--lg-ease) backwards}
+.record-panel .record-art{animation:lg-art-in 900ms var(--lg-ease) backwards}
 @keyframes lg-art-in{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
-.record-metrics>*{animation:lg-row-in 560ms var(--lg-ease) both}.record-metrics>*:nth-child(2){animation-delay:60ms}.record-metrics>*:nth-child(3){animation-delay:120ms}.record-metrics>*:nth-child(4){animation-delay:180ms}
+.record-metrics>*{animation:lg-row-in 560ms var(--lg-ease) backwards}.record-metrics>*:nth-child(2){animation-delay:60ms}.record-metrics>*:nth-child(3){animation-delay:120ms}.record-metrics>*:nth-child(4){animation-delay:180ms}
 /* menus and toasts */
 .record-more-menu{animation:lg-pop-in 320ms var(--lg-ease) both;transform-origin:top right}
-.booking-upcoming button,.booking-day-list button{animation:lg-row-in 520ms var(--lg-ease) both}
+.booking-upcoming button,.booking-day-list button{animation:lg-row-in 520ms var(--lg-ease) backwards}
 @keyframes lg-pop-in{from{opacity:0;transform:translateY(-6px) scale(.97)}to{opacity:1;transform:none}}
 .demo-toast{animation:lg-toast-in 520ms var(--lg-ease) both}
 @keyframes lg-toast-in{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { CrudRecordDialog, DeleteConfirmDialog, type CrudValues } from "@/components/shared/crud-dialogs";
 import { readEmailSignature, saveEmailSignature } from "@/features/email-signature";
@@ -80,6 +80,29 @@ export function SettingsDashboard() {
   const [recordId, setRecordId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
+  const indicatorRef = useRef<HTMLSpanElement | null>(null);
+  // One highlight glides to the chosen section instead of snapping (same motion as the main sidebar).
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    const indicator = indicatorRef.current;
+    if (!nav || !indicator) return;
+    const place = () => {
+      const button = nav.querySelector<HTMLElement>("button.active");
+      if (!button) return;
+      const navBox = nav.getBoundingClientRect();
+      const box = button.getBoundingClientRect();
+      indicator.style.width = `${box.width}px`;
+      indicator.style.height = `${box.height}px`;
+      indicator.style.transform = `translate(${box.left - navBox.left + nav.scrollLeft - nav.clientLeft}px, ${box.top - navBox.top + nav.scrollTop - nav.clientTop}px)`;
+      button.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    };
+    place();
+    indicator.dataset.ready = "true";
+    const observer = new ResizeObserver(place);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [active]);
   const currentRecords = records[active] ?? baseRecords;
   const currentRecord = currentRecords.find((record) => record.id === recordId);
   const deleting = currentRecords.find((record) => record.id === deleteId);
@@ -94,8 +117,8 @@ export function SettingsDashboard() {
   return <div className="settings-page">
     <header className="workspace-hero settings-hero"><div><div className="eyebrow">Settings</div><h1 className="workspace-title">Settings. <em>Manage your studio, team and platform.</em></h1><p>Configure your studio, users, permissions, automations and workspace preferences.</p></div><figure><Image src="/artwork-placeholders/waves.svg" alt="Sample monochrome artwork" fill sizes="42vw" unoptimized loading="eager"/><figcaption>Sample artwork</figcaption></figure></header>
     <div className="settings-layout">
-      <aside className="settings-nav" aria-label="Settings sections">{groups.map((group)=><section key={group.label}><strong>{group.label}</strong>{group.items.map(([item,icon])=><button type="button" key={item} className={active===item?"active":""} onClick={()=>setActive(item)}><Icon name={icon} size={16}/><span>{item}</span></button>)}</section>)}</aside>
-      <main className="settings-content">
+      <aside className="settings-nav" ref={navRef} aria-label="Settings sections"><span className="settings-nav-indicator" ref={indicatorRef} aria-hidden="true" />{groups.map((group)=><section key={group.label}><strong>{group.label}</strong>{group.items.map(([item,icon])=><button type="button" key={item} className={active===item?"active":""} onClick={()=>setActive(item)}><Icon name={icon} size={16}/><span>{item}</span></button>)}</section>)}</aside>
+      <main className="settings-content" key={active}>
         <header className="settings-content-head"><div><h2>{active}</h2><p>{active === "General" ? "Manage your studio’s core settings, branding, and default preferences." : `Configure ${active.toLowerCase()} and maintain its records.`}</p></div>{active!=="General"?<button type="button" className="button" onClick={()=>setMode("create")}><Icon name="plus" size={14}/> Add record</button>:null}</header>
         {active === "General" ? <>
           <div className="settings-cards settings-cards-two">

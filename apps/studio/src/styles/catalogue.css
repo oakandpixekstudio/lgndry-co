@@ -157,7 +157,7 @@
   .cat-actions{width:100%}.cat-actions .button{flex:1}
 }
 @media(prefers-reduced-motion:no-preference){
-  .cat-card,.cat-slot,.cat-images article{animation:lg-row-in 560ms var(--lg-ease) both}
+  .cat-card,.cat-slot,.cat-images article{animation:lg-row-in 560ms var(--lg-ease) backwards}
 }
 
 /* live mode and errors */

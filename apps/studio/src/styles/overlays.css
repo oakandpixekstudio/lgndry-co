@@ -1,0 +1,67 @@
+/* ───────── Overlays: modals, alerts, search, the mobile drawer ─────────
+   The page behind a dialog is never blacked out. It is veiled in the paper tone and softly blurred, like frosted
+   glass, so the studio stays present and the dialog sits above it. One treatment for every overlay. */
+
+:root {
+  --lg-veil: radial-gradient(120% 90% at 50% 18%, rgba(251, 250, 246, 0.7), rgba(238, 236, 228, 0.58));
+  --lg-veil-blur: 22px;
+  --lg-dialog-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 40px 90px -28px rgba(34, 30, 22, 0.3),
+    0 18px 36px -18px rgba(34, 30, 22, 0.18),
+    0 2px 6px rgba(34, 30, 22, 0.06);
+}
+
+.crud-scrim,
+.compose-scrim,
+.dialog-scrim,
+.template-editor-scrim,
+.mobile-backdrop.open {
+  background: var(--lg-veil);
+  -webkit-backdrop-filter: blur(var(--lg-veil-blur)) saturate(1.12);
+  backdrop-filter: blur(var(--lg-veil-blur)) saturate(1.12);
+}
+
+/* the dialogs themselves: hairline edge, layered soft shadow, no heavy black halo */
+.crud-dialog,
+.compose-dialog,
+.template-editor,
+.search-box {
+  border: 1px solid rgba(34, 30, 22, 0.12);
+  box-shadow: var(--lg-dialog-shadow);
+}
+
+/* the veil eases in and the blur deepens, instead of a flat fade to black */
+@media (prefers-reduced-motion: no-preference) {
+  .crud-scrim,
+  .compose-scrim,
+  .dialog-scrim,
+  .template-editor-scrim {
+    animation: lg-veil-in 640ms var(--lg-ease) both;
+  }
+  .crud-scrim.is-closing,
+  .compose-scrim.is-closing,
+  .dialog-scrim.is-closing,
+  .template-editor-scrim.is-closing {
+    animation: lg-veil-out 280ms ease both;
+  }
+}
+@keyframes lg-veil-in {
+  from { opacity: 0; -webkit-backdrop-filter: blur(0) saturate(1); backdrop-filter: blur(0) saturate(1); }
+  to   { opacity: 1; -webkit-backdrop-filter: blur(var(--lg-veil-blur)) saturate(1.12); backdrop-filter: blur(var(--lg-veil-blur)) saturate(1.12); }
+}
+@keyframes lg-veil-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* browsers without backdrop blur get a solid paper veil, never black */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .crud-scrim,
+  .compose-scrim,
+  .dialog-scrim,
+  .template-editor-scrim,
+  .mobile-backdrop.open {
+    background: rgba(244, 243, 238, 0.92);
+  }
+}
