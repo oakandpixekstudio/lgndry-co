@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { COLLECTIONS } from "@/lib/catalogue";
+import { getCatalogue } from "@/lib/catalogue-source";
 import { POLICY_LINKS, SITE } from "@/lib/site";
 import { NewsletterForm } from "@/components/newsletter-form";
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const { collections: COLLECTIONS } = await getCatalogue();
   return (
     <footer id="contact" className="bg-paper px-[var(--offset)] pt-[85px] pb-6">
       <div className="grid gap-12 md:grid-cols-2">

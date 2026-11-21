@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Photo } from "@/components/photo";
 import { Reveal } from "@/components/reveal";
 import { WorkCard } from "@/components/work-card";
-import { COLLECTIONS, WORKS, editionLabel, imageUrl, worksByCollection } from "@/lib/catalogue";
+import { editionLabel, imageUrl } from "@/lib/catalogue";
+import { getCatalogue } from "@/lib/catalogue-source";
 
 const TICKER = [
   "Archival pigment prints",
@@ -20,7 +21,13 @@ const PROCESS = [
   { n: "04", t: "Delivered", d: "A numbered certificate with every edition. Packed carefully and sent with tracking." },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { works: WORKS, collections: COLLECTIONS, worksByCollection, slotImage } = await getCatalogue();
+  // Pictures the studio can change from the Studio Desk (Editions > Website images); the built-in ones show until then.
+  const heroImage = slotImage("home.hero", { file: "home-hero.webp", alt: "A figure standing in a golden field beneath a hazy Limpopo sky" });
+  const introImage = slotImage("home.intro_1", { file: "home-intro-1.webp", alt: "Documentary image of a gathering beneath a clear sky" });
+  const perspectiveImage = slotImage("studio.hero", { file: "about-hero.webp", alt: "Movement and form documented in fine-art photography" });
+  const commissionImage = slotImage("commission.hero", { file: "services-hero.webp", alt: "LGNDRY.Co commissioned visual storytelling work" });
   const buyable = WORKS.filter((w) => w.mode === "buy");
   const collectors = worksByCollection("collectors-editions");
   const feature = collectors[0];
@@ -40,10 +47,10 @@ export default function HomePage() {
         <div className="hero-counter animate-rise [animation-delay:350ms]">001 — 006 &nbsp;&nbsp; / &nbsp;&nbsp; EDITION NO. 01</div>
 
         <div className="hero-work animate-unveil [animation-delay:200ms]">
-          <Photo src={imageUrl("home-hero.webp")} alt="A figure standing in a golden field beneath a hazy Limpopo sky" tone="earth" className="h-full w-full" priority sizes="55vw" />
+          <Photo src={imageUrl(heroImage.src)} alt={heroImage.alt} focal={heroImage.focal} tone="earth" className="h-full w-full" priority sizes="55vw" />
         </div>
         <div className="hero-detail animate-unveil [animation-delay:450ms]">
-          <Photo src={imageUrl("home-intro-1.webp")} alt="Documentary image of a gathering beneath a clear sky" tone="ritual" className="h-full w-full" priority sizes="25vw" />
+          <Photo src={imageUrl(introImage.src)} alt={introImage.alt} focal={introImage.focal} tone="ritual" className="h-full w-full" priority sizes="25vw" />
         </div>
 
         <p className="hero-line animate-rise [animation-delay:600ms]">The extraordinary was here all along.</p>
@@ -94,7 +101,11 @@ export default function HomePage() {
               <Reveal key={c.slug} delay={i * 80}>
                 <Link href={`/collections/${c.slug}`} className="group block">
                   <div className="relative overflow-hidden">
-                    <Photo src={imageUrl(cover.image)} alt="" tone={cover.tone} focal={cover.focal} className="aspect-[3/4]" sizes="(max-width: 1024px) 50vw, 25vw" />
+                    {cover ? (
+                      <Photo src={imageUrl(cover.image)} alt="" tone={cover.tone} focal={cover.focal} className="aspect-[3/4]" sizes="(max-width: 1024px) 50vw, 25vw" />
+                    ) : (
+                      <div className="aspect-[3/4] bg-[#d1d0cb]" aria-hidden="true" />
+                    )}
                     <div className="absolute inset-0 z-[4] bg-gradient-to-t from-black/60 via-black/5 to-transparent transition-opacity duration-700 group-hover:from-black/80" />
                     <div className="absolute inset-x-4 bottom-4 z-[5] text-white transition-transform duration-700 ease-[cubic-bezier(0.19,1,0.22,1)] group-hover:-translate-y-3">
                       <p className="text-[10px] tracking-[0.12em] uppercase opacity-80">{String(i + 1).padStart(2, "0")}</p>
@@ -173,6 +184,7 @@ export default function HomePage() {
               Enter the Collector&rsquo;s Editions <span>→</span>
             </Link>
           </div>
+          {feature ? (
           <Reveal>
             <Link href={`/works/${feature.slug}`} className="group block">
               <Photo src={imageUrl(feature.image)} alt={feature.summary} tone={feature.tone} focal={feature.focal} className="aspect-[4/5] shadow-[0_0_0_14px_#f8f8f5]" sizes="(max-width: 1024px) 100vw, 45vw" zoom />
@@ -182,6 +194,7 @@ export default function HomePage() {
               </div>
             </Link>
           </Reveal>
+          ) : null}
         </div>
       </section>
 
@@ -201,7 +214,7 @@ export default function HomePage() {
           </h2>
         </Reveal>
         <div className="relative z-[1] ml-auto -mt-4 aspect-[1.3] w-full max-h-[570px] sm:w-[83%] md:-mt-[78px] md:w-[51%]">
-          <Photo src={imageUrl("about-hero.webp")} alt="Movement and form documented in fine-art photography" tone="form" className="h-full w-full grayscale-[0.4]" sizes="(max-width: 768px) 90vw, 50vw" />
+          <Photo src={imageUrl(perspectiveImage.src)} alt={perspectiveImage.alt} focal={perspectiveImage.focal} tone="form" className="h-full w-full grayscale-[0.4]" sizes="(max-width: 768px) 90vw, 50vw" />
         </div>
         <p className="relative z-[4] mt-10 max-w-[320px] text-[13px] leading-[1.65] md:absolute md:bottom-[11%] md:left-[var(--offset)] md:mt-0">
           A visual archive of overlooked things. Scenes not staged. Moments not repeated. The quiet kind of beauty that stays with you.
@@ -230,7 +243,7 @@ export default function HomePage() {
 
       {/* ───────── Commission passage ───────── */}
       <section className="relative h-[min(850px,85svh)] min-h-[600px] overflow-hidden text-white" id="studio">
-        <Photo src={imageUrl("services-hero.webp")} alt="LGNDRY.Co commissioned visual storytelling work" tone="earth" focal="center 45%" className="absolute inset-0" sizes="100vw" />
+        <Photo src={imageUrl(commissionImage.src)} alt={commissionImage.alt} tone="earth" focal={commissionImage.focal ?? "center 45%"} className="absolute inset-0" sizes="100vw" />
         <div className="absolute inset-0 z-[3] bg-gradient-to-r from-black/50 to-transparent" />
         <div className="absolute inset-x-[var(--offset)] bottom-[9%] z-[4]">
           <Reveal>

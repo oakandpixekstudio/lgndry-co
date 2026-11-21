@@ -1,4 +1,11 @@
 /**
+ * Catalogue types and the STATIC prototype catalogue.
+ *
+ * In production the works, collections and page images come from the Studio Desk database
+ * (see catalogue-source.ts). The static data below is what the site shows when CATALOGUE_SOURCE is not
+ * "database", and nothing else should import WORKS or COLLECTIONS directly: read the catalogue through
+ * getCatalogue() on the server or useCatalogue() in client components.
+ *
  * LGNDRY.Co catalogue — PROTOTYPE DATA.
  *
  * Every price, edition size, dimension and spec below is a placeholder taken from the
@@ -11,26 +18,24 @@
 
 export type Tone = "earth" | "ritual" | "road" | "portrait" | "form" | "structure";
 
-export type CollectionSlug =
-  | "open-editions"
-  | "individual-works"
-  | "photographic-series"
-  | "collectors-editions";
+/** Collections are data now: the four launch slugs are open-editions, individual-works, photographic-series, collectors-editions. */
+export type CollectionSlug = string;
 
-export type Category = "Landscape" | "Documentary" | "Movement" | "Portraiture";
+export type Category = string;
 
-export type SizeKey = "A3" | "A2" | "A1";
-export type FinishKey = "Unframed" | "Black frame" | "Natural frame";
+/** Sizes and finishes come from each work's variants. The prototype ones are A3/A2/A1 and Unframed/Black frame/Natural frame. */
+export type SizeKey = string;
+export type FinishKey = string;
 
 export const IMG_BASE = "/images/";
 
-export const SIZES: Record<SizeKey, { label: string; dims: string; surcharge: number }> = {
+export const SIZES: Record<string, { label: string; dims: string; surcharge: number }> = {
   A3: { label: "A3", dims: "297 × 420 mm", surcharge: 0 },
   A2: { label: "A2", dims: "420 × 594 mm", surcharge: 1350 },
   A1: { label: "A1", dims: "594 × 841 mm", surcharge: 3100 },
 };
 
-export const FINISHES: Record<FinishKey, { label: string; note: string; surcharge: number }> = {
+export const FINISHES: Record<string, { label: string; note: string; surcharge: number }> = {
   Unframed: { label: "Unframed", note: "Rolled in protective tube", surcharge: 0 },
   "Black frame": { label: "Black frame", note: "Matt black, museum glazing", surcharge: 1450 },
   "Natural frame": { label: "Natural frame", note: "Raw oak, museum glazing", surcharge: 1750 },
@@ -88,6 +93,13 @@ export type Edition =
   | { kind: "open" }
   | { kind: "limited"; size: number | null };
 
+/** One size + finish a work is sold in, with its own price in whole rand (null = on request). */
+export interface WorkVariant {
+  size: string;
+  finish: string;
+  price: number | null;
+}
+
 export interface Work {
   slug: string;
   title: string;
@@ -107,6 +119,12 @@ export interface Work {
   /** Short note shown on enquire-led works. */
   availabilityNote?: string;
   featured?: boolean;
+  /** Alt text for the cover image. Always set for works that come from the database. */
+  imageAlt?: string;
+  /** Present for works from the database: the sizes and finishes it is really sold in. Absent for the static prototype. */
+  variants?: WorkVariant[];
+  /** Copies left, only when the owner allows showing stock. */
+  remaining?: number | null;
 }
 
 export const WORKS: Work[] = [
@@ -315,27 +333,32 @@ export const WORKS: Work[] = [
   },
 ];
 
-export const worksByCollection = (slug: CollectionSlug) =>
-  WORKS.filter((w) => w.collection === slug);
-
-export const getWork = (slug: string) => WORKS.find((w) => w.slug === slug);
-
-export const getCollection = (slug: string) => COLLECTIONS.find((c) => c.slug === slug);
-
-export const featuredWorks = () => WORKS.filter((w) => w.featured);
-
-export const relatedWorks = (work: Work, n = 3) =>
-  WORKS.filter((w) => w.slug !== work.slug && w.mode === "buy")
-    .sort((a, b) => Number(b.collection === work.collection) - Number(a.collection === work.collection))
-    .slice(0, n);
-
 export const money = (n: number) => "R " + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
+export const sizeInfo = (size: string) => SIZES[size] ?? { label: size, dims: "", surcharge: 0 };
+export const finishInfo = (finish: string) => FINISHES[finish] ?? { label: finish, note: "", surcharge: 0 };
+
+/** The sizes this work is sold in, and for each size the finishes available. */
+export function variantOptions(work: Work): { sizes: string[]; finishesFor: (size: string) => string[] } {
+  const variants = (work.variants ?? []).filter((v) => v.price !== null);
+  if (!variants.length) {
+    // static prototype: every size in every finish
+    return { sizes: Object.keys(SIZES), finishesFor: () => Object.keys(FINISHES) };
+  }
+  const sizes = [...new Set(variants.map((v) => v.size))];
+  return { sizes, finishesFor: (size) => [...new Set(variants.filter((v) => v.size === size).map((v) => v.finish))] };
+}
+
 export function unitPrice(work: Work, size: SizeKey, finish: FinishKey): number | null {
+  if (work.variants?.length) {
+    // a work from the database is priced by its own variants, never by a formula
+    const hit = work.variants.find((v) => v.size === size && v.finish === finish);
+    return hit?.price ?? null;
+  }
   if (work.price === null) return null;
   // Photographic series are priced per set; size/finish do not apply.
   if (work.collection === "photographic-series") return work.price;
-  return work.price + SIZES[size].surcharge + FINISHES[finish].surcharge;
+  return work.price + sizeInfo(size).surcharge + finishInfo(finish).surcharge;
 }
 
 export const editionLabel = (work: Work) => {
@@ -347,4 +370,5 @@ export const editionLabel = (work: Work) => {
 export const priceLabel = (work: Work) =>
   work.price === null ? "Price on request" : `${work.mode === "buy" && work.collection !== "photographic-series" ? "From " : ""}${money(work.price)}`;
 
-export const imageUrl = (file: string) => IMG_BASE + file;
+/** A file name from the static set, or a full address (database images). */
+export const imageUrl = (file: string) => (/^(https?:)?\/\//.test(file) || file.startsWith("/") ? file : IMG_BASE + file);

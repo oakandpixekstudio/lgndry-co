@@ -4,6 +4,8 @@ import { AnnouncementBar } from "@/components/announcement-bar";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Toaster } from "@/components/toaster";
+import { CatalogueProvider } from "@/lib/catalogue-context";
+import { getCatalogueSnapshot } from "@/lib/catalogue-source";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -24,7 +26,8 @@ export const viewport: Viewport = {
   themeColor: "#f7f7f5",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const snapshot = await getCatalogueSnapshot();
   return (
     <html lang="en-ZA">
       <body className="flex min-h-screen flex-col">
@@ -34,13 +37,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[200] focus:bg-ink focus:px-4 focus:py-3 focus:text-xs focus:text-paper">
           Skip to content
         </a>
-        <AnnouncementBar />
-        <SiteHeader />
-        <main id="main" className="flex-1">
-          {children}
-        </main>
-        <SiteFooter />
-        <Toaster />
+        <CatalogueProvider snapshot={snapshot}>
+          <AnnouncementBar />
+          <SiteHeader />
+          <main id="main" className="flex-1">
+            {children}
+          </main>
+          <SiteFooter />
+          <Toaster />
+        </CatalogueProvider>
       </body>
     </html>
   );

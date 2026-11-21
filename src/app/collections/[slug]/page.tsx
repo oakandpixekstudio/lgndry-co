@@ -6,15 +6,18 @@ import { CatalogueBrowser } from "@/components/catalogue-browser";
 import { PageIntro } from "@/components/page-intro";
 import { OtherCollections } from "@/components/other-collections";
 import { ServiceStrip } from "@/components/service-strip";
-import { COLLECTIONS, getCollection, worksByCollection } from "@/lib/catalogue";
+import { getCatalogue } from "@/lib/catalogue-source";
 import { cn } from "@/lib/utils";
 
-export function generateStaticParams() {
-  return COLLECTIONS.map((c) => ({ slug: c.slug }));
+export async function generateStaticParams() {
+  const { collections } = await getCatalogue();
+  // Cache Components needs at least one path; an unknown collection renders the not-found page.
+  return collections.length ? collections.map((c) => ({ slug: c.slug })) : [{ slug: "_" }];
 }
 
 export async function generateMetadata({ params }: PageProps<"/collections/[slug]">): Promise<Metadata> {
   const { slug } = await params;
+  const { getCollection } = await getCatalogue();
   const c = getCollection(slug);
   return c ? { title: c.title, description: c.intro } : {};
 }
@@ -29,6 +32,7 @@ export default function CollectionPage({ params }: PageProps<"/collections/[slug
 
 async function CollectionContent({ params }: Pick<PageProps<"/collections/[slug]">, "params">) {
   const { slug } = await params;
+  const { collections: COLLECTIONS, getCollection, worksByCollection } = await getCatalogue();
   const collection = getCollection(slug);
   if (!collection) notFound();
   if (collection.slug === "collectors-editions") redirect("/collectors-editions");

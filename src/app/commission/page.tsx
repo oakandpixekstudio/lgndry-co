@@ -3,6 +3,7 @@ import { CommissionForm } from "@/components/enquiry-forms";
 import { PageIntro } from "@/components/page-intro";
 import { Photo } from "@/components/photo";
 import { imageUrl } from "@/lib/catalogue";
+import { getCatalogue } from "@/lib/catalogue-source";
 
 export const metadata: Metadata = {
   title: "Commission a project",
@@ -18,7 +19,9 @@ const SERVICES = [
 
 const STEPS = ["Share your brief", "We shape the approach together", "We photograph and edit", "You receive finished work"];
 
-export default function CommissionPage() {
+export default async function CommissionPage() {
+  const { slotImage } = await getCatalogue();
+  const hero = slotImage("commission.hero", { file: "services-hero.webp", alt: "LGNDRY.Co commissioned visual storytelling work" });
   return (
     <>
       <PageIntro
@@ -50,7 +53,7 @@ export default function CommissionPage() {
       <section className="border-t border-line bg-stone px-[var(--offset)] py-[90px]">
         <div className="grid gap-16 lg:grid-cols-[1fr_1.1fr]">
           <div>
-            <Photo src={imageUrl("services-hero.webp")} alt="LGNDRY.Co commissioned visual storytelling work" tone="earth" className="aspect-[4/5] max-w-[520px]" sizes="(max-width: 1024px) 100vw, 40vw" />
+            <Photo src={imageUrl(hero.src)} alt={hero.alt} focal={hero.focal} tone="earth" className="aspect-[4/5] max-w-[520px]" sizes="(max-width: 1024px) 100vw, 40vw" />
             <ol className="mt-10 max-w-[520px] border-t border-ink">
               {STEPS.map((s, i) => (
                 <li key={s} className="flex gap-6 border-b border-line py-4 text-[13px]">

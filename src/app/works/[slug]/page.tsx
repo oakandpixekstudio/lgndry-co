@@ -5,14 +5,17 @@ import { Suspense } from "react";
 import { ProductView } from "@/components/product-view";
 import { ServiceStrip } from "@/components/service-strip";
 import { WorkCard } from "@/components/work-card";
-import { WORKS, getWork, relatedWorks } from "@/lib/catalogue";
+import { getCatalogue } from "@/lib/catalogue-source";
 
-export function generateStaticParams() {
-  return WORKS.map((w) => ({ slug: w.slug }));
+export async function generateStaticParams() {
+  const { works } = await getCatalogue();
+  // Cache Components needs at least one path; "_" renders the not-found page until the first work is published.
+  return works.length ? works.map((w) => ({ slug: w.slug })) : [{ slug: "_" }];
 }
 
 export async function generateMetadata({ params }: PageProps<"/works/[slug]">): Promise<Metadata> {
   const { slug } = await params;
+  const { getWork } = await getCatalogue();
   const work = getWork(slug);
   if (!work) return {};
   return { title: work.title, description: `${work.title}: ${work.summary} ${work.story}` };
@@ -29,6 +32,7 @@ export default function WorkPage({ params }: PageProps<"/works/[slug]">) {
 
 async function WorkContent({ params }: Pick<PageProps<"/works/[slug]">, "params">) {
   const { slug } = await params;
+  const { getWork, relatedWorks } = await getCatalogue();
   const work = getWork(slug);
   if (!work) notFound();
 

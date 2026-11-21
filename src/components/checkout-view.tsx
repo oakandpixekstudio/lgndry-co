@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Photo } from "@/components/photo";
-import { getWork, imageUrl, money } from "@/lib/catalogue";
-import { lineTotal, useCart } from "@/lib/cart-store";
+import { imageUrl, money } from "@/lib/catalogue";
+import { useCatalogue } from "@/lib/catalogue-context";
+import { useCart } from "@/lib/cart-store";
 
 const SHIPPING = [
   { id: "courier", label: "Insured courier", note: "Tracked door-to-door. Cost confirmed once your address is verified." },
@@ -35,7 +36,8 @@ function F({ id, label, className, ...props }: { id: string; label: string; clas
 }
 
 export function CheckoutView() {
-  const { lines, count, subtotal } = useCart();
+  const { lines, count, subtotal, lineTotal } = useCart();
+  const { getWork } = useCatalogue();
   const [ship, setShip] = useState("courier");
   const [done, setDone] = useState(false);
 

@@ -1,34 +1,48 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Breadcrumbs } from "@/components/page-intro";
 import { Photo } from "@/components/photo";
 import { CollectorEnquiryForm } from "@/components/enquiry-forms";
 import { addToCart } from "@/lib/cart-store";
 import {
-  FINISHES,
-  SIZES,
   editionLabel,
-  getCollection,
+  finishInfo,
   imageUrl,
   money,
+  sizeInfo,
   unitPrice,
+  variantOptions,
   type FinishKey,
   type SizeKey,
   type Work,
 } from "@/lib/catalogue";
+import { useCatalogue } from "@/lib/catalogue-context";
 import { notify, setBagOpen } from "@/lib/ui-store";
 import { cn } from "@/lib/utils";
 
-const SIZE_HEIGHT_MM: Record<SizeKey, number> = { A3: 420, A2: 594, A1: 841 };
-const FRAME_COLOUR: Record<FinishKey, string | null> = { Unframed: null, "Black frame": "#141414", "Natural frame": "#b88a58" };
+const SIZE_HEIGHT_MM: Record<string, number> = { A3: 420, A2: 594, A1: 841 };
+const FRAME_COLOUR: Record<string, string | null> = { Unframed: null, "Black frame": "#141414", "Natural frame": "#b88a58" };
+/** Known finishes have set colours; any other finish that names a frame is shown as a dark frame, anything else unframed. */
+const frameColour = (finish: string) => FRAME_COLOUR[finish] ?? (/frame/i.test(finish) ? "#141414" : null);
 
 export function ProductView({ work }: { work: Work }) {
-  const [size, setSize] = useState<SizeKey>("A3");
-  const [finish, setFinish] = useState<FinishKey>("Unframed");
-  const collection = getCollection(work.collection)!;
+  // Sizes and finishes come from the work itself: its variants (database) or the standard set (prototype).
+  const options = useMemo(() => variantOptions(work), [work]);
+  const [size, setSize] = useState<SizeKey>(options.sizes[0] ?? "A3");
+  const finishes = options.finishesFor(size);
+  const [finishChoice, setFinish] = useState<FinishKey>(options.finishesFor(options.sizes[0] ?? "A3")[0] ?? "Unframed");
+  // keep the chosen finish only while this size is sold in it
+  const finish = finishes.includes(finishChoice) ? finishChoice : (finishes[0] ?? finishChoice);
+  const { getCollection } = useCatalogue();
+  const collection = getCollection(work.collection) ?? { slug: work.collection, title: work.collection.replace(/-/g, " ") };
+  const cheapestFinish = Math.min(...finishes.map((f) => unitPrice(work, size, f) ?? Number.POSITIVE_INFINITY));
+  const finishExtra = (f: string) => {
+    const p = unitPrice(work, size, f);
+    return p === null || !Number.isFinite(cheapestFinish) ? null : p - cheapestFinish;
+  };
   const isSeries = work.collection === "photographic-series";
   const isBuy = work.mode === "buy";
   const price = unitPrice(work, size, finish);
@@ -46,7 +60,7 @@ export function ProductView({ work }: { work: Work }) {
         <div className="grid min-h-[78vh] place-items-center px-[7%] pt-[150px] pb-[7%] lg:min-h-screen">
           <Photo
             src={imageUrl(work.image)}
-            alt={`${work.title}: ${work.summary}`}
+            alt={work.imageAlt ?? `${work.title}: ${work.summary}`}
             tone={work.tone}
             focal={work.focal}
             priority
@@ -114,10 +128,10 @@ export function ProductView({ work }: { work: Work }) {
             <fieldset className="mb-6">
               <legend className="mb-3 block text-[11px] font-bold">01 / SELECT A SIZE</legend>
               <div className="flex flex-wrap gap-1.5">
-                {(Object.keys(SIZES) as SizeKey[]).map((s) => (
+                {options.sizes.map((s) => (
                   <button key={s} className={cn("chip text-left")} aria-pressed={size === s} onClick={() => setSize(s)}>
-                    <span className="block font-semibold">{SIZES[s].label}</span>
-                    <span className="block text-[9px] opacity-70">{SIZES[s].dims}</span>
+                    <span className="block font-semibold">{sizeInfo(s).label}</span>
+                    {sizeInfo(s).dims ? <span className="block text-[9px] opacity-70">{sizeInfo(s).dims}</span> : null}
                   </button>
                 ))}
               </div>
@@ -126,14 +140,17 @@ export function ProductView({ work }: { work: Work }) {
             <fieldset className="mb-8">
               <legend className="mb-3 block text-[11px] font-bold">02 / SELECT A FINISH</legend>
               <div className="flex flex-wrap gap-1.5">
-                {(Object.keys(FINISHES) as FinishKey[]).map((f) => (
-                  <button key={f} className="chip text-left" aria-pressed={finish === f} onClick={() => setFinish(f)}>
-                    <span className="block font-semibold uppercase">{FINISHES[f].label}</span>
-                    <span className="block text-[9px] opacity-70">{FINISHES[f].surcharge ? `+ ${money(FINISHES[f].surcharge)}` : "Included"}</span>
-                  </button>
-                ))}
+                {finishes.map((f) => {
+                  const extra = finishExtra(f);
+                  return (
+                    <button key={f} className="chip text-left" aria-pressed={finish === f} onClick={() => setFinish(f)}>
+                      <span className="block font-semibold uppercase">{finishInfo(f).label}</span>
+                      <span className="block text-[9px] opacity-70">{extra ? `+ ${money(extra)}` : "Included"}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <p className="mt-3 text-[11px] text-ash">{FINISHES[finish].note}</p>
+              {finishInfo(finish).note ? <p className="mt-3 text-[11px] text-ash">{finishInfo(finish).note}</p> : null}
             </fieldset>
 
             <button className="btn btn-dark hidden w-full lg:flex" onClick={add}>
@@ -172,7 +189,7 @@ export function ProductView({ work }: { work: Work }) {
               <dt className="text-ash">Edition</dt>
               <dd>{editionLabel(work)}</dd>
               <dt className="text-ash">Size</dt>
-              <dd>{isBuy ? `${SIZES[size].label} · ${SIZES[size].dims}` : isSeries ? "Set sizes confirmed on enquiry" : "Dimensions confirmed on enquiry"}</dd>
+              <dd>{isBuy ? [sizeInfo(size).label, sizeInfo(size).dims].filter(Boolean).join(" · ") : isSeries ? "Set sizes confirmed on enquiry" : "Dimensions confirmed on enquiry"}</dd>
               <dt className="text-ash">Certificate</dt>
               <dd>{work.edition.kind === "open" ? "Included" : "Numbered certificate of authenticity"}</dd>
             </dl>
@@ -218,8 +235,8 @@ function RoomView({ work, size, finish }: { work: Work; size: SizeKey; finish: F
   const buy = work.mode === "buy";
 
   // Wall height shown is ~1.75 m. Buyable works follow the chosen size; enquiry-led works use a presentation scale.
-  const heightPct = isSeries ? 24 : isCollector ? 50 : (SIZE_HEIGHT_MM[size] / 1750) * 100;
-  const frame = buy ? FRAME_COLOUR[finish] : FRAME_COLOUR["Black frame"];
+  const heightPct = isSeries ? 24 : isCollector ? 50 : ((SIZE_HEIGHT_MM[size] ?? 420) / 1750) * 100;
+  const frame = buy ? frameColour(finish) : frameColour("Black frame");
   const prints = isSeries ? [0, 1, 2] : [0];
   const focals = ["20% 50%", "55% 50%", "85% 50%"];
 

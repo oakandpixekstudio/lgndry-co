@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
-import { FINISHES, SIZES, getWork, unitPrice, type FinishKey, type SizeKey } from "@/lib/catalogue";
+import { useCatalogue } from "@/lib/catalogue-context";
+import { unitPrice, type FinishKey, type SizeKey } from "@/lib/catalogue";
 
 /**
  * Prototype cart: lives in the browser only (localStorage).
@@ -28,11 +29,10 @@ const isLine = (l: unknown): l is Line => {
   return (
     typeof x.key === "string" &&
     typeof x.slug === "string" &&
-    x.size in SIZES &&
-    x.finish in FINISHES &&
+    typeof x.size === "string" &&
+    typeof x.finish === "string" &&
     Number.isInteger(x.qty) &&
-    x.qty > 0 &&
-    !!getWork(x.slug)
+    x.qty > 0
   );
 };
 
@@ -103,15 +103,21 @@ export function clearCart() {
   commit([]);
 }
 
-export function lineTotal(l: Line) {
-  const w = getWork(l.slug);
-  const p = w ? unitPrice(w, l.size, l.finish) : null;
-  return p === null ? 0 : p * l.qty;
-}
-
+/**
+ * The bag. Lines are stored as slug + size + finish only; prices and titles are always looked up in the live
+ * catalogue, so a price changed in the Studio Desk is the price in the bag. A line for a work that is no longer
+ * published is hidden and costs nothing.
+ */
 export function useCart() {
-  const current = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const count = current.reduce((s, l) => s + l.qty, 0);
-  const subtotal = current.reduce((s, l) => s + lineTotal(l), 0);
-  return { lines: current, count, subtotal };
+  const stored = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const { getWork } = useCatalogue();
+  const lines = stored.filter((l) => !!getWork(l.slug));
+  const lineTotal = (l: Line) => {
+    const w = getWork(l.slug);
+    const p = w ? unitPrice(w, l.size, l.finish) : null;
+    return p === null ? 0 : p * l.qty;
+  };
+  const count = lines.reduce((s, l) => s + l.qty, 0);
+  const subtotal = lines.reduce((s, l) => s + lineTotal(l), 0);
+  return { lines, count, subtotal, lineTotal };
 }

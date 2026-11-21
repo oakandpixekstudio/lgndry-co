@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { WorkCard } from "@/components/work-card";
-import { COLLECTIONS, WORKS, type Category, type CollectionSlug, type Work } from "@/lib/catalogue";
+import { useCatalogue } from "@/lib/catalogue-context";
+import type { Category, CollectionSlug, Work } from "@/lib/catalogue";
 import { cn } from "@/lib/utils";
 
 type Sort = "featured" | "low" | "high" | "name";
@@ -22,6 +23,7 @@ const CATEGORY_LABEL: Record<string, string> = {
  * leave it out for the full shop, where the collection becomes a filter.
  */
 export function CatalogueBrowser({ collection, works }: { collection?: CollectionSlug; works?: Work[] }) {
+  const { works: WORKS, collections: COLLECTIONS } = useCatalogue();
   const params = useSearchParams();
   const router = useRouter();
   const query = params.get("q") ?? "";

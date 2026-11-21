@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { QtyControls } from "@/components/site-header";
 import { Photo } from "@/components/photo";
-import { getWork, imageUrl, money } from "@/lib/catalogue";
-import { lineTotal, useCart } from "@/lib/cart-store";
+import { imageUrl, money } from "@/lib/catalogue";
+import { useCatalogue } from "@/lib/catalogue-context";
+import { useCart } from "@/lib/cart-store";
 
 export function CartView() {
-  const { lines, count, subtotal } = useCart();
+  const { lines, count, subtotal, lineTotal } = useCart();
+  const { getWork } = useCatalogue();
 
   if (!lines.length) {
     return (
@@ -30,7 +32,7 @@ export function CartView() {
           return (
             <li key={l.key} className="grid grid-cols-[110px_1fr] gap-5 border-b border-line py-7 sm:grid-cols-[140px_1fr_auto]">
               <Link href={`/works/${w.slug}`}>
-                <Photo plain src={imageUrl(w.image)} alt={w.title} tone={w.tone} focal={w.focal} className="aspect-[4/5]" sizes="140px" />
+                <Photo plain src={imageUrl(w.image)} alt={w.imageAlt ?? w.title} tone={w.tone} focal={w.focal} className="aspect-[4/5]" sizes="140px" />
               </Link>
               <div>
                 <Link href={`/works/${w.slug}`} className="text-[17px] font-semibold hover:underline">
