@@ -14,7 +14,7 @@ import { useEffect } from "react";
 
 const NUMBER_TOKEN = /\d[\d,]*(?:\.\d+)?/g;
 const MIN_FIGURE_SIZE = 22; // px. Only headline figures count up, never table cells or labels.
-const DURATION = 1500;
+const DURATION = 900;
 
 const easeOutExpo = (t: number) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t));
 
@@ -91,7 +91,7 @@ export function MotionEffects() {
           .forEach((entry) => {
             figureObserver.unobserve(entry.target);
             const node = figureNodes.get(entry.target);
-            if (node) countUp(node, order++ * 70);
+            if (node) countUp(node, order++ * 40);
           });
       },
       { threshold: 0.3 },

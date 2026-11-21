@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { isAuthConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -37,28 +38,34 @@ const initialsOf = (name: string) =>
  * Who is using the studio? Checked on the server for every page, in addition to proxy.ts.
  * Being signed in is not enough: the person must also hold an ACTIVE staff role in the workspace.
  */
-export async function getStaffContext(): Promise<StaffContext> {
+async function loadStaffContext(): Promise<StaffContext> {
   if (!isAuthConfigured()) return { status: "open" };
   const supabase = await createSupabaseServerClient();
   if (!supabase) return { status: "open" };
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { status: "signed-out" };
+  // Verified locally from the token's signature: no trip to Supabase for "who is this?".
+  const { data: auth } = await supabase.auth.getClaims();
+  const claims = auth?.claims;
+  if (!claims?.sub) return { status: "signed-out" };
 
   // Row-level security lets a signed-in user read only their own membership rows.
   const { data: memberships } = await supabase.from("workspace_memberships").select("workspace_id, role").eq("active", true);
   const best = (memberships ?? [])
     .filter((row): row is { workspace_id: string; role: StaffRole } => row.role in ROLE_RANK)
     .sort((a, b) => ROLE_RANK[b.role] - ROLE_RANK[a.role])[0];
-  const email = user.email ?? "unknown";
+  const email = typeof claims.email === "string" ? claims.email : "unknown";
   if (!best) return { status: "no-access", email };
 
-  const metaName = typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "";
+  const meta = (claims.user_metadata ?? {}) as { full_name?: unknown };
+  const metaName = typeof meta.full_name === "string" ? meta.full_name : "";
   const name = metaName || email.split("@")[0]!.replace(/[._-]+/g, " ");
   return {
     status: "ok",
     staff: { email, name, initials: initialsOf(name), role: best.role, roleLabel: ROLE_LABEL[best.role], workspaceId: best.workspace_id },
   };
 }
+
+/**
+ * Who is using the studio, once per request. The layout and every page may ask; only the first one does any work.
+ */
+export const getStaffContext = cache(loadStaffContext);

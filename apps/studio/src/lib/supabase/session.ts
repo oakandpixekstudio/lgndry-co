@@ -19,10 +19,11 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // getUser() asks Supabase to verify the token. getSession() would trust the cookie, which is not safe on the server.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() checks the token's signature here, on this machine, so it costs no trip to Supabase (it only
+  // calls out to refresh an expired token). getSession() would trust the cookie unchecked, which is not safe.
+  // Access is still re-checked against the database below (an active staff role), so a removed person is locked out.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? { id: data.claims.sub } : null;
   return { response, user };
 }
 
