@@ -551,9 +551,17 @@
   margin: 8px 0 0;
   color: #333;
 }
+.command-note-item { position: relative; padding-right: 54px !important; }
+.command-note-actions { position: absolute; right: 10px; top: 12px; display: flex; gap: 3px; opacity: 0; transform: translateY(3px); transition: opacity 160ms ease, transform 220ms ease; }
+.command-note-item:hover .command-note-actions,
+.command-note-item:focus-within .command-note-actions { opacity: 1; transform: translateY(0); }
+.command-note-actions button { width: 25px; height: 25px; display: grid; place-items: center; border: 1px solid #cbc9c2; background: rgba(255,255,255,.45); }
+.command-note-actions button:hover { background: #171716; color: #fff; border-color: #171716; }
 .command-cta {
   display: flex;
   align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
 }
 
 /* ───────── Responsive ───────── */

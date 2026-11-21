@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import { CrudRecordDialog, DeleteConfirmDialog, type CrudField, type CrudValues } from "@/components/shared/crud-dialogs";
 import type { WorkspaceConfig, WorkspaceRow, WorkspaceTone } from "../types";
 
 function toneClass(tone: WorkspaceTone | undefined) {
@@ -13,7 +14,7 @@ function Status({ label, tone }: { label: string; tone?: WorkspaceTone }) {
   return <span className={`workspace-status${toneClass(tone)}`}>{label}</span>;
 }
 
-function DetailPanel({ config, record, onDemoAction }: { config: WorkspaceConfig; record: WorkspaceRow; onDemoAction: (label: string) => void }) {
+function DetailPanel({ config, record, onDemoAction, onEdit, onDelete }: { config: WorkspaceConfig; record: WorkspaceRow; onDemoAction: (label: string) => void; onEdit: () => void; onDelete: () => void }) {
   const { detail } = record;
   return (
     <aside className="record-panel" aria-label={`${record.title} details`}>
@@ -33,9 +34,10 @@ function DetailPanel({ config, record, onDemoAction }: { config: WorkspaceConfig
               <span>{record.subtitle}</span>
             </div>
           </div>
-          <button type="button" className="record-more" onClick={() => onDemoAction("More actions")} aria-label="More record actions">
-            •••
-          </button>
+          <div className="record-header-actions">
+            <button type="button" onClick={onEdit} aria-label={`Edit ${record.title}`} title="Edit record"><Icon name="pencil" size={15} /></button>
+            <button type="button" className="delete-action" onClick={onDelete} aria-label={`Delete ${record.title}`} title="Delete record"><Icon name="trash" size={15} /></button>
+          </div>
         </header>
 
         <div className="record-tabs" role="tablist" aria-label="Record sections">
@@ -134,27 +136,113 @@ function DetailPanel({ config, record, onDemoAction }: { config: WorkspaceConfig
 }
 
 export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
+  const [allRows, setAllRows] = useState<WorkspaceRow[]>(() => config.rows);
   const [activeBucket, setActiveBucket] = useState("all");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(config.rows[0]?.id ?? "");
   const [notice, setNotice] = useState<string | null>(null);
+  const [dialogMode, setDialogMode] = useState<"create" | "edit" | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const nextRecordNumber = useRef(config.rows.length + 1);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return config.rows.filter((item) => {
+    return allRows.filter((item) => {
       const matchesBucket = activeBucket === "all" || item.bucket === activeBucket || item.status === activeBucket;
       const matchesQuery = !q || `${item.title} ${item.subtitle} ${Object.values(item.cells).join(" ")}`.toLowerCase().includes(q);
       return matchesBucket && matchesQuery;
     });
-  }, [activeBucket, config.rows, query]);
+  }, [activeBucket, allRows, query]);
 
-  const selected = config.rows.find((item) => item.id === selectedId) ?? rows[0] ?? config.rows[0];
-  const demoAction = (label: string) => {
-    setNotice(`${label} is a demo-only preview. No record was changed and no external service was contacted.`);
+  const selected = allRows.find((item) => item.id === selectedId) ?? rows[0] ?? allRows[0];
+  const editingRecord = allRows.find((item) => item.id === editingId);
+  const deleteRecord = allRows.find((item) => item.id === deleteId);
+  const recordFields = useMemo<CrudField[]>(() => [
+    { key: "title", label: "Record title", placeholder: `Enter ${config.entity} title` },
+    { key: "subtitle", label: "Supporting detail" },
+    { key: "status", label: "Status" },
+    { key: "bucket", label: "Type / category" },
+    ...config.columns.map((column) => ({ key: `cell:${column.key}`, label: column.label })),
+  ], [config.columns, config.entity]);
+
+  const valuesFor = (record: WorkspaceRow | undefined): CrudValues => Object.fromEntries(recordFields.map((field) => {
+    if (!record) return [field.key, ""];
+    if (field.key === "title") return [field.key, record.title];
+    if (field.key === "subtitle") return [field.key, record.subtitle];
+    if (field.key === "status") return [field.key, record.status];
+    if (field.key === "bucket") return [field.key, record.bucket];
+    return [field.key, record.cells[field.key.replace("cell:", "")] ?? ""];
+  }));
+
+  const showNotice = (message: string) => {
+    setNotice(message);
     window.setTimeout(() => setNotice(null), 4500);
   };
 
-  if (!selected) return null;
+  const demoAction = (label: string) => {
+    showNotice(`${label} is a prototype action. No external service was contacted.`);
+  };
+
+  const openCreate = () => {
+    setEditingId(null);
+    setDialogMode("create");
+  };
+
+  const openEdit = (id: string) => {
+    setEditingId(id);
+    setDialogMode("edit");
+  };
+
+  const saveRecord = (values: CrudValues) => {
+    const cells = Object.fromEntries(config.columns.map((column) => [column.key, values[`cell:${column.key}`] || "—"]));
+    if (dialogMode === "edit" && editingRecord) {
+      setAllRows((current) => current.map((record) => record.id === editingRecord.id ? {
+        ...record,
+        title: values.title ?? editingRecord.title,
+        subtitle: values.subtitle ?? editingRecord.subtitle,
+        status: values.status || record.status,
+        bucket: values.bucket || record.bucket,
+        cells,
+      } : record));
+      showNotice(`${values.title} was updated in this prototype session.`);
+    } else {
+      const template = config.rows[0] ?? allRows[0];
+      if (!template) return;
+      const created: WorkspaceRow = {
+        ...template,
+        id: `${config.entity.slice(0, 3).toUpperCase()}-NEW-${nextRecordNumber.current++}`,
+        title: values.title ?? "Untitled record",
+        subtitle: values.subtitle ?? "",
+        status: values.status || "Draft",
+        bucket: values.bucket || "Draft",
+        tone: "neutral",
+        cells,
+        detail: {
+          ...template.detail,
+          metrics: template.detail.metrics.map((metric) => ({ ...metric })),
+          facts: template.detail.facts.map((fact) => ({ ...fact })),
+          secondaryFacts: template.detail.secondaryFacts?.map((fact) => ({ ...fact })),
+          tags: template.detail.tags ? [...template.detail.tags] : undefined,
+        },
+      };
+      setAllRows((current) => [created, ...current]);
+      setSelectedId(created.id);
+      setActiveBucket("all");
+      showNotice(`${created.title} was created in this prototype session.`);
+    }
+    setDialogMode(null);
+    setEditingId(null);
+  };
+
+  const deleteSelected = () => {
+    if (!deleteRecord) return;
+    const remaining = allRows.filter((record) => record.id !== deleteRecord.id);
+    setAllRows(remaining);
+    setSelectedId(remaining[0]?.id ?? "");
+    showNotice(`${deleteRecord.title} was deleted from this prototype session.`);
+    setDeleteId(null);
+  };
 
   return (
     <div className="workspace-page">
@@ -191,7 +279,7 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
             </button>
           ))}
         </div>
-        <button type="button" className="button workspace-primary-action" onClick={() => demoAction(config.primaryAction)}>
+        <button type="button" className="button workspace-primary-action" onClick={openCreate}>
           <Icon name="plus" size={15} /> {config.primaryAction}
         </button>
       </div>
@@ -213,7 +301,7 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
               <thead><tr><th className="select-cell"><span className="fake-check" /></th><th>{config.eyebrow.slice(0, -1) || config.eyebrow}</th>{config.columns.map((column) => <th key={column.key} className={column.align ? `align-${column.align}` : ""}>{column.label}</th>)}<th>Status</th><th aria-label="Actions" /></tr></thead>
               <tbody>
                 {rows.map((item) => (
-                  <tr key={item.id} className={selected.id === item.id ? "is-selected" : ""}>
+                  <tr key={item.id} className={selected?.id === item.id ? "is-selected" : ""}>
                     <td className="select-cell"><span className="fake-check" /></td>
                     <td className="record-cell">
                       <button type="button" onClick={() => setSelectedId(item.id)}>
@@ -223,7 +311,7 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
                     </td>
                     {config.columns.map((column) => <td key={column.key} className={`${column.align ? `align-${column.align}` : ""} tabnum`}>{item.cells[column.key] ?? "—"}</td>)}
                     <td><Status label={item.status} tone={item.tone} /></td>
-                    <td><button type="button" className="row-more" onClick={() => demoAction("Row actions")} aria-label={`More actions for ${item.title}`}>•••</button></td>
+                    <td><button type="button" className="row-more" onClick={() => { setSelectedId(item.id); openEdit(item.id); }} aria-label={`Edit ${item.title}`}>•••</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -233,10 +321,12 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
           <footer className="workspace-list-footer"><span>Showing 1–{rows.length} of {config.tabs[0]?.count ?? rows.length} {config.entity}</span><div><button type="button" aria-label="Previous page">‹</button><button type="button" className="active">1</button><button type="button">2</button><button type="button">3</button><span>…</span><button type="button" aria-label="Next page">›</button></div></footer>
         </section>
 
-        <DetailPanel config={config} record={selected} onDemoAction={demoAction} />
+        {selected ? <DetailPanel config={config} record={selected} onDemoAction={demoAction} onEdit={() => openEdit(selected.id)} onDelete={() => setDeleteId(selected.id)} /> : <aside className="record-panel workspace-empty">Create a record to begin.</aside>}
       </div>
 
       {notice ? <div className="demo-toast" role="status"><strong>Demo workspace</strong><span>{notice}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss">×</button></div> : null}
+      {dialogMode ? <CrudRecordDialog mode={dialogMode} entity={config.entity} fields={recordFields} initialValues={dialogMode === "edit" ? valuesFor(editingRecord) : undefined} onClose={() => { setDialogMode(null); setEditingId(null); }} onSave={saveRecord} /> : null}
+      {deleteRecord ? <DeleteConfirmDialog entityLabel={config.entity} recordLabel={deleteRecord.title} onCancel={() => setDeleteId(null)} onConfirm={deleteSelected} /> : null}
     </div>
   );
 }

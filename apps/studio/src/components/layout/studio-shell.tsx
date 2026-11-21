@@ -39,6 +39,7 @@ export function StudioShell({
   const [navOpen, setNavOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const sidebarCollapsed = useSyncExternalStore(subscribeToSidebar, getSidebarSnapshot, () => false);
+  const railCollapsed = sidebarCollapsed && !navOpen;
   const sidebarRef = useRef<HTMLElement | null>(null);
   const menuRef = useRef<HTMLButtonElement | null>(null);
 
@@ -85,8 +86,8 @@ export function StudioShell({
         Skip to content
       </a>
       <div className={`mobile-backdrop${navOpen ? " open" : ""}`} onClick={closeNav} aria-hidden="true" />
-      <div className={`app${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
-        <FloatingSidebar open={navOpen} onClose={closeNav} counts={counts} demo={demo} sidebarRef={sidebarRef} collapsed={sidebarCollapsed && !navOpen} onToggleCollapsed={toggleSidebar} />
+      <div className={`app${railCollapsed ? " sidebar-collapsed" : ""}`}>
+        <FloatingSidebar open={navOpen} onClose={closeNav} counts={counts} demo={demo} sidebarRef={sidebarRef} collapsed={railCollapsed} onToggleCollapsed={toggleSidebar} />
         <div className="main-shell">
           <Topbar
             onMenu={() => setNavOpen(true)}
