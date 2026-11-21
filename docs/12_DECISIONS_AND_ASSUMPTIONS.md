@@ -179,3 +179,16 @@ Do not treat this document as authority to invent merchant credentials, tax stat
 | Are size and finish surcharges approved prices? | Variant pricing | catalogue prices are prototype figures; do not publish | **Yes** |
 | Are the website's 7 existing images licensed for sale as artwork? | Catalogue images | use as placeholders only | **Yes** |
 | Is a customer account wanted at launch, or after? | Accounts | guest checkout only | No (can follow launch) |
+
+### DEC-2026-015 — Staff sign-in: Supabase Auth, invitation only, authorised twice
+- Date: 2026-11-21
+- Context: the Studio Desk needs real staff accounts before it touches the database (docs/04 section 5).
+- Proposed choice: email and password through Supabase Auth, with sessions in cookies (never localStorage). Accounts are created by invitation only; public sign-up is switched off in Supabase. After signing in, a person must also hold an active `workspace_memberships` role, checked on the server for every page (`getStaffContext`) in addition to the redirect in `proxy.ts`. Failed sign-ins show one message that does not reveal whether an email has an account. Password reset sends an emailed link and requires at least 12 characters.
+- Rollout: sign-in switches on only when `NEXT_PUBLIC_SUPABASE_URL` and the public key are set. Without them the studio stays in demo mode with no sign-in, as before.
+- Impact: needs migration 0006 (staff can read their own membership) and the first-owner script (`packages/database/seeds/first_owner.sql`).
+- Status: Proposed
+
+### DEC-2026-016 — Open item: multi-factor sign-in
+- Context: docs/04 requires MFA for Owner, Admin and Finance before production financial operations.
+- Selected choice: not built yet. Supabase supports authenticator-app (TOTP) factors. It must be in place before payments or invoices go live, not before catalogue work.
+- Status: Open (launch dependency for finance features)

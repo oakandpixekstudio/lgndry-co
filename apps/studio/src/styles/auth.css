@@ -35,3 +35,7 @@
 @keyframes sign-in-arrive { from { opacity: 0; transform: translateY(24px) scale(.985); } to { opacity: 1; transform: none; } }
 @media (max-width: 640px) { .sign-in-page { padding: 16px; align-items: end; } .sign-in-panel { padding: 38px 24px 31px; } .sign-in-panel > p { margin-bottom: 30px; } .sign-in-options { align-items: flex-start; gap: 12px; } }
 @media (prefers-reduced-motion: reduce) { .sign-in-panel { animation: none; } }
+
+.sign-in-error,.sign-in-note{margin:14px 0 0;padding:11px 14px;font-size:12.5px;line-height:1.5;border:1px solid}
+.sign-in-error{color:#a1271d;background:#fbf1ef;border-color:#e7c3be}
+.sign-in-note{color:#1f4f3b;background:#eef5f1;border-color:#c5dccf}
