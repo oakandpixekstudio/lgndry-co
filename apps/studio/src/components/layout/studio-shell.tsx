@@ -95,7 +95,6 @@ export function StudioShell({
             navOpen={navOpen}
             menuRef={menuRef}
             dateLabel={dateLabel}
-            demo={demo}
             storefrontUrl={storefrontUrl}
           />
           <main className="workspace" id="workspace" tabIndex={-1}>

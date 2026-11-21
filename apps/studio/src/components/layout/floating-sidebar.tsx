@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { ADMIN_NAV, PRIMARY_NAV, type NavCounts, type NavItem } from "@/lib/navigation";
 
@@ -38,6 +39,16 @@ export function FloatingSidebar({
   collapsed: boolean;
   onToggleCollapsed: () => void;
 }) {
+  const router = useRouter();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const close = (event: MouseEvent) => {
+      if (!profileRef.current?.contains(event.target as Node)) setProfileOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
   return (
     <aside className={`sidebar${open ? " mobile-open" : ""}`} id="sidebar" ref={sidebarRef} aria-label="Studio Desk navigation">
       <div className="brand">
@@ -66,7 +77,8 @@ export function FloatingSidebar({
       </nav>
       <div className="side-bottom">
         <div className="side-bottom-label">{demo ? "SIGNED IN AS / DEMO" : "SIGNED IN AS"}</div>
-        <div className="side-profile">
+        <div className="side-profile-wrap" ref={profileRef}>
+        <button type="button" className="side-profile" onClick={() => setProfileOpen((current) => !current)} aria-expanded={profileOpen} aria-label="Open account menu">
           <span className="avatar-small" aria-hidden="true">
             LS
           </span>
@@ -74,6 +86,15 @@ export function FloatingSidebar({
             <strong>Studio Manager</strong>
             <small>LGNDRY.Co / Admin</small>
           </span>
+          <Icon name="chevron" size={13} className="profile-chevron" />
+        </button>
+        <div className={`profile-menu${profileOpen ? " is-open" : ""}`} aria-hidden={!profileOpen}>
+          <div><strong>Studio Manager</strong><span>studio@lgndry.co.za</span></div>
+          <Link href="/settings" onClick={() => setProfileOpen(false)}><Icon name="user" size={15}/> Profile & account</Link>
+          <Link href="/notifications" onClick={() => setProfileOpen(false)}><Icon name="bell" size={15}/> Notifications</Link>
+          <Link href="/settings" onClick={() => setProfileOpen(false)}><Icon name="sliders" size={15}/> Workspace settings</Link>
+          <button type="button" onClick={() => router.push("/sign-in")}><Icon name="logout" size={15}/> Sign out</button>
+        </div>
         </div>
         <div className="side-version">{demo ? "DEMO ENVIRONMENT" : "PRODUCTION"} &nbsp; V 2.0</div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { CrudRecordDialog, DeleteConfirmDialog, type CrudField, type CrudValues } from "@/components/shared/crud-dialogs";
@@ -147,6 +148,7 @@ function DetailPanel({ config, record, onDemoAction, onEdit, onDelete }: { confi
         </> : <RelatedSubview key={`${record.id}-${config.detailTabs[activeTab]}`} label={config.detailTabs[activeTab] ?? "Related records"} record={record} />}
 
         <footer className="record-actions">
+          <Link className="button record-full-link" href={`/${config.entity}/${encodeURIComponent(record.id)}`}>View full record <Icon name="arrow" size={14}/></Link>
           {config.detailActions.map((action, index) => (
             <button key={action} type="button" className={index === 0 ? "button" : "button secondary"} onClick={() => onDemoAction(action)}>{action}</button>
           ))}
@@ -213,13 +215,6 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
   const openEdit = (id: string) => {
     setEditingId(id);
     setDialogMode("edit");
-  };
-
-  const openRecord = (id: string) => {
-    setSelectedId(id);
-    if (window.innerWidth <= 1380) {
-      window.requestAnimationFrame(() => document.querySelector(".record-panel")?.scrollIntoView({ behavior: "smooth", block: "start" }));
-    }
   };
 
   const saveRecord = (values: CrudValues) => {
@@ -332,10 +327,10 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
                   <tr key={item.id} className={selected?.id === item.id ? "is-selected" : ""}>
                     <td className="select-cell"><span className="fake-check" /></td>
                     <td className="record-cell">
-                      <button type="button" onClick={() => openRecord(item.id)} aria-label={`Open ${item.title}`}>
+                      <Link href={`/${config.entity}/${encodeURIComponent(item.id)}`} onClick={() => setSelectedId(item.id)} aria-label={`Open full record for ${item.title}`}>
                         <span className="row-thumb"><Image src={item.image ?? ART_FALLBACK} alt="" fill sizes="48px" unoptimized /></span>
                         <span><strong>{item.title}</strong><small>{item.subtitle}</small></span>
-                      </button>
+                      </Link>
                     </td>
                     {config.columns.map((column) => <td key={column.key} className={`${column.align ? `align-${column.align}` : ""} tabnum`}>{item.cells[column.key] ?? "—"}</td>)}
                     <td><Status label={item.status} tone={item.tone} /></td>

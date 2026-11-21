@@ -33,6 +33,11 @@ export function InboxWorkspace() {
   const [search, setSearch] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeBody, setComposeBody] = useState("");
+  const [composeMaximized, setComposeMaximized] = useState(false);
+  const [ccOpen, setCcOpen] = useState(false);
+  const [attachments, setAttachments] = useState<string[]>([]);
+  const [followUp, setFollowUp] = useState(false);
+  const [composeLabel, setComposeLabel] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [crudMode, setCrudMode] = useState<"create" | "edit" | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -70,6 +75,9 @@ export function InboxWorkspace() {
   const openComposer = () => {
     setComposeBody(`Hi ${selectedThread.sender.split(" ")[0]},\n\nThank you for your message.\n\nEdition II of A Quiet Form is still available (8 prints remaining). The total cost for a framed piece (60 × 90 cm) is R 7,800, including museum-grade framing, production and delivery to Cape Town.\n\nThe current lead time is 10–14 business days from payment confirmation.\n\nPlease let me know if you’d like us to prepare a formal quote or reserve a print for you.\n\nKind regards,\nLGNDRY.CO\nStudio Desk`);
     setComposeOpen(true);
+    setAttachments([]);
+    setFollowUp(false);
+    setComposeLabel(false);
   };
 
   const patchSelected = (changes: Partial<ThreadRecord>) => {
@@ -143,22 +151,26 @@ export function InboxWorkspace() {
 
       {composeOpen ? (
         <div className="compose-scrim" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setComposeOpen(false)}>
-          <section className="compose-dialog" role="dialog" aria-modal="true" aria-labelledby="compose-title">
-            <header><Icon name="mail" size={28}/><div><h2 id="compose-title">Compose Reply</h2><p>Reply to {selectedThread.sender} · {selectedThread.subject}</p></div><button ref={closeRef} type="button" onClick={() => setComposeOpen(false)} aria-label="Close composer"><Icon name="close" size={20}/></button></header>
+          <section className={`compose-dialog${composeMaximized ? " is-maximized" : ""}`} role="dialog" aria-modal="true" aria-labelledby="compose-title">
+            <header><Icon name="mail" size={28}/><div><h2 id="compose-title">Compose Reply</h2><p>Reply to {selectedThread.sender} <span>·</span> {selectedThread.subject}</p></div><button type="button" onClick={() => setComposeMaximized((current) => !current)} aria-label={composeMaximized ? "Restore composer" : "Maximize composer"}><Icon name="external" size={17}/></button><button ref={closeRef} type="button" onClick={() => setComposeOpen(false)} aria-label="Close composer"><Icon name="close" size={20}/></button></header>
             <div className="compose-layout">
-              <aside><strong>Templates</strong>{[
+              <aside><strong><Icon name="layers" size={16}/> Templates</strong>{[
                 ["Enquiry Response", `Hi ${selectedThread.sender.split(" ")[0]},\n\nThank you for your enquiry. We have received your request and will confirm availability shortly.\n\nKind regards,\nLGNDRY.CO\nStudio Desk`],
                 ["Quote / Pricing", `Hi ${selectedThread.sender.split(" ")[0]},\n\nThank you for your interest. The framed edition is R 7,800 including production and delivery.\n\nKind regards,\nLGNDRY.CO\nStudio Desk`],
                 ["Edition Availability", composeBody],
                 ["Booking Confirmation", `Hi ${selectedThread.sender.split(" ")[0]},\n\nYour studio booking request is confirmed. We will share the production schedule next.\n\nKind regards,\nLGNDRY.CO\nStudio Desk`],
+                ["Booking Information", `Hi ${selectedThread.sender.split(" ")[0]},\n\nPlease find the booking information and production notes below.\n\nKind regards,\nLGNDRY.CO\nStudio Desk`],
                 ["Order Update", `Hi ${selectedThread.sender.split(" ")[0]},\n\nYour order is progressing and the latest status is available in the Studio Desk.\n\nKind regards,\nLGNDRY.CO\nStudio Desk`],
-              ].map(([template, body], index) => <button type="button" key={template} className={index === 0 ? "active" : ""} onClick={() => setComposeBody(body ?? "")}>{template}</button>)}</aside>
+                ["Delivery & Logistics", `Hi ${selectedThread.sender.split(" ")[0]},\n\nYour delivery is being prepared. Tracking details will follow once the work is collected.\n\nKind regards,\nLGNDRY.CO\nStudio Desk`],
+              ].map(([template, body], index) => <button type="button" key={template} className={index === 0 ? "active" : ""} onClick={() => setComposeBody(body ?? "")}><Icon name={index===3?"calendar":index>=5?"truck":"file"} size={15}/><span>{template}</span><Icon name="chevron" size={13}/></button>)}<button type="button" onClick={()=>demoNotice("Custom template creator opened.")}><Icon name="plus" size={15}/><span>Custom Template</span></button></aside>
               <div className="compose-form">
-                <label><span>To</span><input value={`${selectedThread.sender} <m.sinder@coastline.co.za>`} readOnly /></label>
+                <label className="recipient-field"><span>To</span><div><b>{selectedThread.sender} &lt;m.sinder@coastline.co.za&gt;</b></div><button type="button" onClick={()=>setCcOpen((current)=>!current)}>Cc</button><button type="button" onClick={()=>setCcOpen(true)}>Bcc</button></label>
+                {ccOpen?<label><span>Cc / Bcc</span><input placeholder="Add recipients…" autoFocus/></label>:null}
                 <label><span>Subject</span><input value={`Re: ${selectedThread.subject}`} readOnly /></label>
-                <div className="compose-tools"><button type="button" onClick={() => setComposeBody((value) => `**${value}**`)}><b>B</b></button><button type="button" onClick={() => setComposeBody((value) => `_${value}_`)}><i>I</i></button><u>U</u><span>⌁</span><span>☷</span><span>❝</span></div>
+                <div className="compose-tools"><button type="button" onClick={() => setComposeBody((value) => `**${value}**`)}><b>B</b></button><button type="button" onClick={() => setComposeBody((value) => `_${value}_`)}><i>I</i></button><button type="button" onClick={()=>setComposeBody((value)=>`<u>${value}</u>`)}><u>U</u></button><button type="button" onClick={()=>setComposeBody((value)=>`${value}\n[link](https://)`)}>⌁</button><button type="button" onClick={()=>setComposeBody((value)=>`${value}\n• `)}>☷</button><button type="button" onClick={()=>setComposeBody((value)=>`${value}\n1. `)}>≣</button><button type="button" onClick={()=>setComposeBody((value)=>`${value}\n> `)}>❝</button><button type="button" onClick={()=>setComposeBody((value)=>value.replace(/[*_<>]/g,""))}>Tₓ</button><button type="button" className="compose-insert" onClick={()=>setComposeBody((value)=>`${value}\n\n[Inserted studio detail]`)}>Insert⌄</button></div>
                 <textarea value={composeBody} onChange={(event) => setComposeBody(event.target.value)} aria-label="Email message" />
-                <footer><span>Prototype session · reply is stored locally.</span><button type="button" className="button secondary" onClick={() => { setComposeOpen(false); demoNotice("Draft saved in this prototype session."); }}>Save draft</button><button type="button" className="button" onClick={() => { patchSelected({ replies: [...(selectedThread.replies ?? []), composeBody], unread: false }); setComposeOpen(false); demoNotice("Reply added to the conversation in this prototype session."); }}><Icon name="arrow" size={14}/> Send reply</button></footer>
+                {attachments.length||followUp||composeLabel?<div className="compose-chips">{attachments.map((item)=><button type="button" key={item} onClick={()=>setAttachments([])}><Icon name="file" size={13}/>{item} ×</button>)}{followUp?<button type="button" onClick={()=>setFollowUp(false)}><Icon name="calendar" size={13}/>Follow up · 21 Nov ×</button>:null}{composeLabel?<button type="button" onClick={()=>setComposeLabel(false)}>High Priority ×</button>:null}</div>:null}
+                <footer><div><button type="button" className="button secondary" onClick={()=>setAttachments(["Framing-Reference.pdf"])}><Icon name="file" size={14}/> Attach files</button><button type="button" className="button secondary" onClick={()=>setFollowUp((current)=>!current)}><Icon name="calendar" size={14}/> Add follow up⌄</button><button type="button" className="button secondary" onClick={()=>setComposeLabel((current)=>!current)}><Icon name="star" size={14}/> Add label⌄</button></div><span/><button type="button" className="button secondary save-draft" onClick={() => { setComposeOpen(false); demoNotice("Draft saved in this prototype session."); }}>Save draft</button><button type="button" className="button" onClick={() => { patchSelected({ replies: [...(selectedThread.replies ?? []), composeBody], unread: false }); setComposeOpen(false); demoNotice("Reply added to the conversation in this prototype session."); }}><Icon name="arrow" size={14}/> Send reply</button></footer>
               </div>
             </div>
           </section>
