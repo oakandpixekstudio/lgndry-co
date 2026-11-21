@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type Re
 import { SearchDialog } from "@/components/shared/search-dialog";
 import type { NavCounts } from "@/lib/navigation";
 import { FloatingSidebar } from "./floating-sidebar";
+import { MotionEffects } from "./motion-effects";
 import { Topbar } from "./topbar";
 
 const SIDEBAR_STORAGE_KEY = "lgndry-sidebar-collapsed";
@@ -103,6 +104,7 @@ export function StudioShell({
           </main>
         </div>
       </div>
+      <MotionEffects />
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );

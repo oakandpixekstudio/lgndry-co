@@ -55,7 +55,7 @@ export function SalesPanel({ sales, demo }: { sales: IntelligenceSnapshot["sales
         </div>
       </div>
 
-      <div className="sales-plot" role="img" aria-label={`Bar chart of ${metric} across ${n} periods. A data table follows.`}>
+      <div className="sales-plot" data-reveal="bars" role="img" aria-label={`Bar chart of ${metric} across ${n} periods. A data table follows.`}>
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", gap: 12, padding: "0 2px" }}>
           {series.map((s, i) => {
             const h = (barValues[i]! / barMax) * 100;
