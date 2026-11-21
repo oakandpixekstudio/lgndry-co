@@ -31,3 +31,44 @@
 
 .email-settings-grid{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);align-items:start}.email-settings-grid .email-domain-card{grid-column:1/-1}.email-signature-card .signature-stage{min-height:170px;border:1px dashed #aaa79f;background:#f2f0e9;display:grid;place-items:center;align-content:center;gap:8px;text-align:center;color:var(--lg-muted);overflow:hidden}.email-signature-card .signature-stage strong{font-family:var(--font-serif),Georgia,serif;font-size:18px;font-weight:400;color:var(--lg-ink)}.email-signature-card .signature-stage span{font-size:10.5px}.email-signature-card .signature-stage.has-signature{background:#fff;border-style:solid;padding:18px}.email-signature-card .signature-stage img{display:block;width:100%;height:120px;object-fit:contain}.email-signature-card>footer{display:flex;align-items:center;gap:12px;margin-top:13px}.email-signature-card>footer>span{font-size:10.5px;color:#2b6e36}.signature-upload{position:relative;overflow:hidden;display:inline-flex}.signature-upload input{position:absolute;inset:0;opacity:0;cursor:pointer}.compose-signature{flex:0 0 68px;border:1px solid var(--lg-line);border-top:0;background:#fff;display:flex;align-items:center;gap:12px;padding:7px 12px}.compose-signature>span{font-size:10.5px;letter-spacing:.11em;color:var(--lg-muted);writing-mode:vertical-rl;transform:rotate(180deg)}.compose-signature img{display:block;max-width:100%;width:auto;height:54px;object-fit:contain;object-position:left center}
 @media(max-width:900px){.email-settings-grid{grid-template-columns:1fr}}
+
+/* ───────── Settings: cinematic motion ───────── */
+.settings-nav{position:relative}
+.settings-nav-indicator{position:absolute;top:0;left:0;z-index:0;background:#151514;border-radius:3px;pointer-events:none;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+.settings-nav-indicator[data-ready="true"]{transition:transform 620ms var(--lg-ease),width 620ms var(--lg-ease),height 620ms var(--lg-ease)}
+.settings-nav button,.settings-nav section>strong{position:relative;z-index:1}
+.settings-nav button{transition:color 360ms var(--lg-ease),background 360ms var(--lg-ease)}
+.settings-nav button:hover:not(.active){background:rgba(21,21,20,.06)}
+.settings-nav button.active{background:transparent;color:#fff}
+.settings-nav button svg{transition:transform 420ms var(--lg-ease)}
+.settings-nav button:hover svg{transform:translateX(2px)}
+
+/* the section arrives: heading first, then each card, record, row and control in turn */
+@media(prefers-reduced-motion:no-preference){
+  .settings-content>*{animation:lg-row-in 640ms var(--lg-ease) backwards}
+  .settings-content>*:nth-child(2){animation-delay:70ms}.settings-content>*:nth-child(3){animation-delay:140ms}.settings-content>*:nth-child(4){animation-delay:210ms}.settings-content>*:nth-child(n+5){animation-delay:280ms}
+  .settings-cards>*,.purpose-settings>*,.purpose-columns>*,.integration-grid>*,.team-board>*,.template-gallery>*,.health-row>*{animation:lg-row-in 620ms var(--lg-ease) backwards}
+  .settings-cards>*:nth-child(2),.purpose-settings>*:nth-child(2),.purpose-columns>*:nth-child(2),.integration-grid>*:nth-child(2),.team-board>*:nth-child(2),.template-gallery>*:nth-child(2){animation-delay:90ms}
+  .settings-cards>*:nth-child(3),.purpose-settings>*:nth-child(3),.integration-grid>*:nth-child(3),.team-board>*:nth-child(3),.template-gallery>*:nth-child(3){animation-delay:180ms}
+  .integration-grid>*:nth-child(n+4),.team-board>*:nth-child(n+4),.template-gallery>*:nth-child(n+4){animation-delay:260ms}
+  .settings-record-row,.channel-row,.permission-matrix tbody tr,.people-table tbody tr,.webhook-table tbody tr{animation:lg-row-in 560ms var(--lg-ease) backwards}
+  .settings-record-row:nth-child(2),.channel-row:nth-child(2),.permission-matrix tbody tr:nth-child(2),.people-table tbody tr:nth-child(2),.webhook-table tbody tr:nth-child(2){animation-delay:60ms}
+  .settings-record-row:nth-child(3),.channel-row:nth-child(3),.permission-matrix tbody tr:nth-child(3),.people-table tbody tr:nth-child(3),.webhook-table tbody tr:nth-child(3){animation-delay:120ms}
+  .settings-record-row:nth-child(4),.permission-matrix tbody tr:nth-child(4),.people-table tbody tr:nth-child(4),.webhook-table tbody tr:nth-child(4){animation-delay:180ms}
+  .settings-record-row:nth-child(n+5),.permission-matrix tbody tr:nth-child(n+5),.people-table tbody tr:nth-child(n+5),.webhook-table tbody tr:nth-child(n+5){animation-delay:240ms}
+  /* ticks in the permission matrix settle into place */
+  .permission-matrix td{animation:lg-tick-in 700ms var(--lg-ease) backwards;animation-delay:280ms}
+  @keyframes lg-tick-in{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+}
+
+/* quiet, premium interaction on everything you can touch */
+.settings-card,.purpose-card{transition:border-color 380ms var(--lg-ease),box-shadow 380ms var(--lg-ease),transform 380ms var(--lg-ease)}
+.settings-card:hover,.purpose-card:hover{border-color:rgba(21,21,20,.28);box-shadow:0 14px 34px -22px rgba(34,30,22,.28)}
+.settings-record-row,.permission-matrix tbody tr,.people-table tbody tr,.webhook-table tbody tr,.channel-row{transition:background 360ms var(--lg-ease)}
+.settings-record-row:hover,.permission-matrix tbody tr:hover,.people-table tbody tr:hover,.webhook-table tbody tr:hover{background:rgba(255,255,255,.6)}
+.settings-content input,.settings-content select,.settings-content textarea{transition:border-color 300ms var(--lg-ease),box-shadow 300ms var(--lg-ease),background 300ms var(--lg-ease)}
+.settings-content input:focus-visible,.settings-content select:focus-visible,.settings-content textarea:focus-visible{outline:none;border-color:#151514;box-shadow:0 0 0 3px rgba(21,21,20,.07)}
+.setting-switch,.setting-switch i{transition:background 360ms var(--lg-ease),transform 460ms var(--lg-ease),border-color 360ms var(--lg-ease)}
+.settings-content .button,.settings-content .button.secondary{transition:background 320ms var(--lg-ease),color 320ms var(--lg-ease),border-color 320ms var(--lg-ease),transform 320ms var(--lg-ease),box-shadow 320ms var(--lg-ease)}
+.settings-content .button:hover{transform:translateY(-1px)}
+.settings-content .button:active{transform:translateY(0) scale(.985)}

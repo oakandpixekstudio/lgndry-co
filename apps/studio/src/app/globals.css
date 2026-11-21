@@ -6,6 +6,7 @@
 @import "../styles/intelligence.css";
 @import "../styles/workspaces.css";
 @import "../styles/catalogue.css";
+@import "../styles/overlays.css";
 
 *,
 *::before,

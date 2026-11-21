@@ -141,7 +141,7 @@ export function DeleteConfirmDialog({ entityLabel, recordLabel, onCancel, onConf
         <div className="crud-confirm-icon"><Icon name="alert" size={26} /></div>
         <div className="crud-dialog-index">DELETE {entityLabel.toUpperCase()}</div>
         <h2 id={titleId}>Are you sure you want to delete this?</h2>
-        <p><strong>{recordLabel}</strong> will be removed from this prototype workspace. This action cannot be undone in the current session.</p>
+        <p><strong>{recordLabel}</strong> will be removed. This action cannot be undone.</p>
         <footer className="crud-dialog-footer">
           <button ref={cancelRef} type="button" className="button secondary" onClick={cancel}>Keep record</button>
           <button type="button" className="button danger" onClick={onConfirm}><Icon name="trash" size={15} /> Delete record</button>
