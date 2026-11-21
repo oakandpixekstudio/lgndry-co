@@ -126,3 +126,56 @@ Do not treat this document as authority to invent merchant credentials, tax stat
 - Context: `06_DATA_MODEL.md` leaves how an edition run spans sizes and frames undecided.
 - Selected choice: none yet. To be settled in Phase 3 before any artwork is published.
 - Status: Proposed
+
+### DEC-2026-009 — One catalogue database drives both the website and the Studio Desk
+- Date: 2026-11-21
+- Context: the storefront catalogue (21 works, 4 collections, sizes, finishes, surcharges, image file names) is hard-coded in `apps/storefront/src/lib/catalogue.ts`. The Studio Desk edits demo data held in memory. The two cannot stay aligned unless one database is the source of truth.
+- Proposed choice: Supabase Postgres holds the catalogue. The Studio Desk is the only writer. The storefront reads through public, read-only views (`storefront_*`) and never touches CRM tables. Drafted in `packages/database/migrations/0001`–`0003` (not applied).
+- Impact: `catalogue.ts` is replaced by queries. Storefront pages refresh when the Studio Desk publishes a change.
+- Status: Proposed (needs owner approval of Supabase, A-002)
+
+### DEC-2026-010 — Dynamic images: two kinds, masters private, derivatives public
+- Date: 2026-11-21
+- Context: the owner wants images to be updatable from the CRM. The website currently uses 7 files reused across 21 works.
+- Proposed choice: (1) artwork images in `artwork_images` (cover, gallery, detail, room view; alt text required; focal point); (2) page images in `media_slots` keyed by name, e.g. `home.hero`. Print-resolution masters live in a private bucket. Only web derivatives (WebP/AVIF at 800, 1600 and 2400 px) are public. A work cannot be published without a cover image.
+- Impact: new Studio Desk image editor on the Editions screen and a "Website images" area. Image processing job generates derivatives on upload.
+- Status: Proposed
+
+### DEC-2026-011 — Hybrid purchasing model
+- Date: 2026-11-21
+- Context: D-006 says prints are invoice-first. The storefront already has two modes per work: `buy` and `enquire`. The owner now describes the site as an e-commerce site.
+- Proposed choice: open editions (printed to order) use website checkout. Limited and Collector's Editions are reserve-then-invoice or private enquiry. Both end in the same `orders` table.
+- Impact: D-006 is narrowed, not reversed. Needs the owner to confirm which works are `buy` and which are `enquire`.
+- Status: Proposed (owner to confirm; amends D-006)
+
+### DEC-2026-012 — Orders: server prices, idempotent intake, reservation at checkout
+- Date: 2026-11-21
+- Proposed choice: the browser sends only variant ids and quantities. The server recomputes every price from `artwork_variants`. Stock is reserved when checkout starts (not when an item enters the cart) and expires (A-004 proposes 72h). Orders are created with an idempotency key. Edition numbers can only be allocated after the order has a verified `paid_at`; the database enforces this with a trigger.
+- Impact: no order can become `paid` until a payment provider exists and its webhook is verified. Public checkout stays disabled until then.
+- Status: Proposed
+
+### DEC-2026-013 — Customer accounts: guest first, passwordless later
+- Date: 2026-11-21
+- Context: prints are high-value and bought rarely; the CRM already identifies customers by email.
+- Proposed choice: phase A, guest checkout with an emailed order link (A-011). Phase B, optional passwordless "My orders" login (emailed link) showing orders, invoices, certificates and downloads; no passwords for customers. Phase C, a client portal for photography proofing. Customer logins are separate from staff logins; `customers.auth_user_id` links a customer to an account and RLS lets them read only their own orders.
+- Impact: needs POPIA consent, data export and deletion handling, and an approved privacy notice.
+- Status: Proposed
+
+### DEC-2026-014 — Storefront and Studio live in different git histories
+- Date: 2026-11-21
+- Context: `apps/storefront` has its own history (remote `main` holds the storefront at the repo root; Studio Desk work lives on `studio-main`). Shared types are awkward across two histories.
+- Proposed choice: decide between (a) bringing the storefront into the pnpm workspace so it can share `packages/domain` types, or (b) keeping it separate and having it consume only the public views and API. Not decided.
+- Status: Open
+
+## 7. Open questions added 2026-11-21 (catalogue, images, accounts)
+
+| Question | Affected feature | Safe build-time action | Launch dependency |
+|---|---|---|---|
+| Do size and frame variants share one numbered edition run, or does each size have its own? | Edition numbers, stock, certificates | shared run by default (DEC-2026-008) | **Yes** for published limited works |
+| For "Modishi wa Lebowa": 3 copies, or 1 remaining after two prior allocations? | Collector's Edition register | `show_remaining` is off by default; do not display a count | **Yes** |
+| May the website show "N copies remaining"? | Storefront availability | off per artwork (`show_remaining = false`) | **Yes** |
+| How long is an unpaid reservation held? | Stock | configurable; no live holds until payment exists | **Yes** |
+| Which works are `buy` and which are `enquire`? | Storefront | existing storefront modes kept as the starting point | **Yes** |
+| Are size and finish surcharges approved prices? | Variant pricing | catalogue prices are prototype figures; do not publish | **Yes** |
+| Are the website's 7 existing images licensed for sale as artwork? | Catalogue images | use as placeholders only | **Yes** |
+| Is a customer account wanted at launch, or after? | Accounts | guest checkout only | No (can follow launch) |
