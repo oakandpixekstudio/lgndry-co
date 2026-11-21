@@ -36,7 +36,7 @@ Last updated: 2026-11-22. Related: `docs/12_DECISIONS_AND_ASSUMPTIONS.md` (the e
 | # | Question | Why it matters | Suggestion / options | Your answer |
 |---|---|---|---|---|
 | C1 | **Customer accounts at launch?** | Decides what to build. | Guest checkout plus an emailed order link at launch. Add optional passwordless "My orders" later. No customer passwords. | |
-| C2 | **Which email service and sending address?** (For example info@... or orders@...) Is reading incoming mail into the Inbox wanted? | Order confirmations and replies must come from a verified sender or they land in spam. | Pick a transactional email provider, verify the domain, start outbound-only. | |
+| C2 | **Which email service and sending address?** *(2026-11-22: the client is expected to use Resend. Waiting for their Resend API key and a verified sender address on their domain.)* (For example info@... or orders@...) Is reading incoming mail into the Inbox wanted? | Order confirmations and replies must come from a verified sender or they land in spam. | Pick a transactional email provider, verify the domain, start outbound-only. | |
 | C3 | **Privacy notice and how long you keep customer data.** Marketing consent wording for the newsletter form. | South African privacy law (POPIA) needs a notice, consent records and a way to export or delete data. | Have the notice reviewed before collecting real customers. | |
 
 ## D. Studio operations and security
