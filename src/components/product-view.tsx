@@ -177,7 +177,7 @@ export function ProductView({ work }: { work: Work }) {
           <div className="mb-2">
             <h2 className="mb-2 text-[22px] font-bold tracking-[-0.06em]">{isSeries ? "Reserve this series" : "Enquire about this edition"}</h2>
             <p className="mb-6 text-[12px] leading-[1.65] text-ash">{work.availabilityNote}</p>
-            <CollectorEnquiryForm workTitle={work.title} />
+            <CollectorEnquiryForm workTitle={work.title} workSlug={work.slug} />
           </div>
         )}
 
