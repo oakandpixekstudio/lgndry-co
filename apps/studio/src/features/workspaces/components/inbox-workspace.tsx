@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { animateDialogClose } from "@/lib/dialog-motion";
 import { Icon } from "@/components/icons";
 import { DeleteConfirmDialog } from "@/components/shared/crud-dialogs";
 import { EMAIL_SIGNATURE_EVENT, readEmailSignature } from "@/features/email-signature";
@@ -57,6 +58,10 @@ export function InboxWorkspace() {
   const [notice, setNotice] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const composeScrimRef = useRef<HTMLDivElement>(null);
+  const templateScrimRef = useRef<HTMLDivElement>(null);
+  const closeCompose = useCallback(() => animateDialogClose(composeScrimRef.current, () => setComposeOpen(false)), []);
+  const closeTemplateEditor = useCallback(() => animateDialogClose(templateScrimRef.current, () => setTemplateEditorMode(null)), []);
   const nextThreadNumber = useRef(initialThreads.length + 1);
   const filteredThreads = useMemo(() => threadRows.filter((thread) => {
     const mailboxMatch = activeMailbox === "all" ? !thread.deleted && !thread.archived : activeMailbox === "unread" ? thread.unread && !thread.deleted : activeMailbox === "starred" ? thread.starred && !thread.deleted : activeMailbox === "snoozed" ? thread.snoozed && !thread.deleted : activeMailbox === "archive" ? thread.archived && !thread.deleted : activeMailbox === "trash" ? thread.deleted : thread.category.toLowerCase() === activeMailbox;
@@ -77,10 +82,10 @@ export function InboxWorkspace() {
   useEffect(() => {
     if (!composeOpen) return;
     closeRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setComposeOpen(false);
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && closeCompose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [composeOpen]);
+  }, [composeOpen, closeCompose]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setSignatureUrl(readEmailSignature()), 0);
@@ -157,7 +162,7 @@ export function InboxWorkspace() {
       patchSelected({ replies: [...(selectedThread.replies ?? []), composeBody], unread: false });
       demoNotice("Reply added to the conversation in this prototype session.");
     }
-    setComposeOpen(false);
+    closeCompose();
   };
 
   const deleteThread = () => {
@@ -212,9 +217,9 @@ export function InboxWorkspace() {
       </div>
 
       {composeOpen ? (
-        <div className="compose-scrim" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setComposeOpen(false)}>
+        <div className="compose-scrim" ref={composeScrimRef} role="presentation" onMouseDown={(event) => event.target === event.currentTarget && closeCompose()}>
           <section className={`compose-dialog${composeMaximized ? " is-maximized" : ""}`} role="dialog" aria-modal="true" aria-labelledby="compose-title">
-            <header><Icon name="mail" size={28}/><div><h2 id="compose-title">{composeMode === "reply" ? "Compose Reply" : composeMode === "edit" ? "Edit Email" : "New Email"}</h2><p>{composeMode === "reply" ? <>Reply to {selectedThread.sender} <span>·</span> {selectedThread.subject}</> : composeMode === "edit" ? <>Editing {selectedThread.subject}</> : <>Compose a new studio email</>}</p></div><button type="button" onClick={() => setComposeMaximized((current) => !current)} aria-label={composeMaximized ? "Restore composer" : "Maximize composer"}><Icon name="external" size={17}/></button><button ref={closeRef} type="button" onClick={() => setComposeOpen(false)} aria-label="Close composer"><Icon name="close" size={20}/></button></header>
+            <header><Icon name="mail" size={28}/><div><h2 id="compose-title">{composeMode === "reply" ? "Compose Reply" : composeMode === "edit" ? "Edit Email" : "New Email"}</h2><p>{composeMode === "reply" ? <>Reply to {selectedThread.sender} <span>·</span> {selectedThread.subject}</> : composeMode === "edit" ? <>Editing {selectedThread.subject}</> : <>Compose a new studio email</>}</p></div><button type="button" onClick={() => setComposeMaximized((current) => !current)} aria-label={composeMaximized ? "Restore composer" : "Maximize composer"}><Icon name="external" size={17}/></button><button ref={closeRef} type="button" onClick={() => closeCompose()} aria-label="Close composer"><Icon name="close" size={20}/></button></header>
             <div className="compose-layout">
               <aside><strong><Icon name="layers" size={16}/> Templates</strong>{emailTemplates.map((template) => <div className={`compose-template-row${selectedTemplateId === template.id ? " active" : ""}`} key={template.id}><button type="button" className="template-use" onClick={() => applyTemplate(template)}><Icon name={template.icon} size={15}/><span>{template.name}</span></button><button type="button" className="template-more" aria-label={`${template.name} options`} onClick={()=>setTemplateMenuId((current)=>current===template.id?null:template.id)}>•••</button>{templateMenuId === template.id ? <div className="template-menu"><button type="button" onClick={()=>openTemplateEditor("edit",template)}>Edit template</button><button type="button" onClick={()=>{const copy={...template,id:`custom-${Date.now()}`,name:`${template.name} Copy`,custom:true};setEmailTemplates((current)=>[...current,copy]);setTemplateMenuId(null);demoNotice(`${copy.name} created.`)}}>Duplicate</button>{template.custom?<button type="button" className="danger" onClick={()=>{setTemplateDeleteId(template.id);setTemplateMenuId(null)}}>Delete</button>:null}</div>:null}</div>)}<button type="button" className="custom-template-button" onClick={()=>openTemplateEditor("create")}><Icon name="plus" size={15}/><span>Custom Template</span></button></aside>
               <div className="compose-form">
@@ -227,11 +232,11 @@ export function InboxWorkspace() {
                 {attachments.length||followUp||composeLabel?<div className="compose-chips">{attachments.map((item)=><button type="button" key={item} onClick={()=>setAttachments([])}><Icon name="file" size={13}/>{item} ×</button>)}{followUp?<button type="button" onClick={()=>setFollowUp(false)}><Icon name="calendar" size={13}/>Follow up · 21 Nov ×</button>:null}{composeLabel?<button type="button" onClick={()=>setComposeLabel(false)}>High Priority ×</button>:null}</div>:null}
               </div>
             </div>
-            <footer className="compose-footer"><div><button type="button" className="button secondary" onClick={()=>setAttachments(["Framing-Reference.pdf"])}><Icon name="file" size={14}/> Attach files</button><button type="button" className="button secondary" onClick={()=>setFollowUp((current)=>!current)}><Icon name="calendar" size={14}/> Add follow up⌄</button><button type="button" className="button secondary" onClick={()=>setComposeLabel((current)=>!current)}><Icon name="star" size={14}/> Add label⌄</button></div><span/><button type="button" className="button secondary save-draft" onClick={() => { setComposeOpen(false); demoNotice("Draft saved in this prototype session."); }}>Save draft</button><button type="button" className="button" onClick={submitComposer}><Icon name="arrow" size={14}/> {composeMode === "edit" ? "Save changes" : composeMode === "new" ? "Send email" : "Send reply"}</button></footer>
+            <footer className="compose-footer"><div><button type="button" className="button secondary" onClick={()=>setAttachments(["Framing-Reference.pdf"])}><Icon name="file" size={14}/> Attach files</button><button type="button" className="button secondary" onClick={()=>setFollowUp((current)=>!current)}><Icon name="calendar" size={14}/> Add follow up⌄</button><button type="button" className="button secondary" onClick={()=>setComposeLabel((current)=>!current)}><Icon name="star" size={14}/> Add label⌄</button></div><span/><button type="button" className="button secondary save-draft" onClick={() => { closeCompose(); demoNotice("Draft saved in this prototype session."); }}>Save draft</button><button type="button" className="button" onClick={submitComposer}><Icon name="arrow" size={14}/> {composeMode === "edit" ? "Save changes" : composeMode === "new" ? "Send email" : "Send reply"}</button></footer>
           </section>
         </div>
       ) : null}
-      {templateEditorMode ? <div className="template-editor-scrim" role="presentation"><section className="template-editor" role="dialog" aria-modal="true" aria-labelledby="template-editor-title"><header><div><span>COMMUNICATIONS LIBRARY</span><h2 id="template-editor-title">{templateEditorMode === "edit" ? "Edit email template" : "Create email template"}</h2><p>Use <code>{"{{first_name}}"}</code> to personalise the recipient greeting.</p></div><button type="button" onClick={()=>setTemplateEditorMode(null)} aria-label="Close template editor"><Icon name="close" size={18}/></button></header><label><span>Template name</span><input value={templateName} onChange={(event)=>setTemplateName(event.target.value)} autoFocus/></label><label className="template-body-field"><span>Email content</span><textarea value={templateBody} onChange={(event)=>setTemplateBody(event.target.value)}/></label><footer><button type="button" className="button secondary" onClick={()=>setTemplateEditorMode(null)}>Cancel</button><button type="button" className="button" onClick={saveTemplate}>{templateEditorMode === "edit" ? "Save template" : "Create template"}</button></footer></section></div> : null}
+      {templateEditorMode ? <div className="template-editor-scrim" ref={templateScrimRef} role="presentation"><section className="template-editor" role="dialog" aria-modal="true" aria-labelledby="template-editor-title"><header><div><span>COMMUNICATIONS LIBRARY</span><h2 id="template-editor-title">{templateEditorMode === "edit" ? "Edit email template" : "Create email template"}</h2><p>Use <code>{"{{first_name}}"}</code> to personalise the recipient greeting.</p></div><button type="button" onClick={closeTemplateEditor} aria-label="Close template editor"><Icon name="close" size={18}/></button></header><label><span>Template name</span><input value={templateName} onChange={(event)=>setTemplateName(event.target.value)} autoFocus/></label><label className="template-body-field"><span>Email content</span><textarea value={templateBody} onChange={(event)=>setTemplateBody(event.target.value)}/></label><footer><button type="button" className="button secondary" onClick={closeTemplateEditor}>Cancel</button><button type="button" className="button" onClick={saveTemplate}>{templateEditorMode === "edit" ? "Save template" : "Create template"}</button></footer></section></div> : null}
       {templateDeleteId ? <DeleteConfirmDialog entityLabel="email template" recordLabel={emailTemplates.find((template)=>template.id===templateDeleteId)?.name ?? "Template"} onCancel={()=>setTemplateDeleteId(null)} onConfirm={()=>{setEmailTemplates((current)=>current.filter((template)=>template.id!==templateDeleteId));setTemplateDeleteId(null);demoNotice("Email template deleted.")}}/> : null}
       {deleteOpen ? <DeleteConfirmDialog entityLabel="conversation" recordLabel={selectedThread.subject} onCancel={() => setDeleteOpen(false)} onConfirm={deleteThread} /> : null}
       {notice ? <div className="demo-toast" role="status"><strong>Demo workspace</strong><span>{notice}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss">×</button></div> : null}

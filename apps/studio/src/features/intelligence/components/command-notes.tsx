@@ -42,7 +42,7 @@ export function CommandNotes({ notes }: { notes: IntelligenceSnapshot["notes"] }
       </div>
       {items.map((item, index) => (
         <div key={item.id} className="command-note-item">
-          <div className="caps" style={{ fontSize: 9 }}>{String(index + 1).padStart(2, "0")} / {item.label}</div>
+          <div className="caps" style={{ fontSize: 10.5 }}>{String(index + 1).padStart(2, "0")} / {item.label}</div>
           <p>{item.text}</p>
           <div className="command-note-actions">
             <button type="button" aria-label={`Edit ${item.label}`} onClick={() => { setActiveId(item.id); setMode("edit"); }}><Icon name="pencil" size={13} /></button>
