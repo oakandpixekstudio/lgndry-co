@@ -55,7 +55,15 @@ function isFigure(node: Text) {
   return parseFloat(getComputedStyle(parent).fontSize) >= MIN_FIGURE_SIZE;
 }
 
-function countUp(node: Text, delay: number) {
+/** React tags every DOM element it owns once it has hydrated it. Until then the text must not be touched. */
+const isHydrated = (element: Element | null) => element !== null && Object.keys(element).some((key) => key.startsWith("__reactFiber$"));
+
+/** Waits for React to finish hydrating the figure (a streamed page can hydrate after this layer starts), then counts up. */
+function countUp(node: Text, delay: number, waited = 0) {
+  if (!isHydrated(node.parentElement)) {
+    if (waited < 3000) requestAnimationFrame(() => countUp(node, delay, waited + 16));
+    return; // never hydrated within 3 s: leave the real number alone
+  }
   const finalText = node.nodeValue ?? "";
   const tokens = parseTokens(finalText);
   if (!tokens.length) return;
