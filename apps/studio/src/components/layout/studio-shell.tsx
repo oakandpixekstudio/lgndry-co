@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import type { StaffInfo } from "@/features/auth/types";
 import { SearchDialog } from "@/components/shared/search-dialog";
 import type { NavCounts } from "@/lib/navigation";
 import { FloatingSidebar } from "./floating-sidebar";
@@ -30,12 +31,14 @@ export function StudioShell({
   demo,
   dateLabel,
   storefrontUrl,
+  staff = null,
 }: {
   children: ReactNode;
   counts: NavCounts;
   demo: boolean;
   dateLabel: string;
   storefrontUrl: string;
+  staff?: StaffInfo | null;
 }) {
   const [navOpen, setNavOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -88,7 +91,7 @@ export function StudioShell({
       </a>
       <div className={`mobile-backdrop${navOpen ? " open" : ""}`} onClick={closeNav} aria-hidden="true" />
       <div className={`app${railCollapsed ? " sidebar-collapsed" : ""}`}>
-        <FloatingSidebar open={navOpen} onClose={closeNav} counts={counts} demo={demo} sidebarRef={sidebarRef} collapsed={railCollapsed} onToggleCollapsed={toggleSidebar} />
+        <FloatingSidebar open={navOpen} onClose={closeNav} counts={counts} demo={demo} staff={staff} sidebarRef={sidebarRef} collapsed={railCollapsed} onToggleCollapsed={toggleSidebar} />
         <div className="main-shell">
           <Topbar
             onMenu={() => setNavOpen(true)}

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import type { StaffInfo } from "@/features/auth/types";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { ADMIN_NAV, PRIMARY_NAV, type NavCounts, type NavItem } from "@/lib/navigation";
 
 function NavLink({ item, count, active, onSelect }: { item: NavItem; count?: number; active: boolean; onSelect: (href: string) => void }) {
@@ -25,6 +27,7 @@ export function FloatingSidebar({
   onClose,
   counts,
   demo,
+  staff,
   sidebarRef,
   collapsed,
   onToggleCollapsed,
@@ -33,6 +36,7 @@ export function FloatingSidebar({
   onClose: () => void;
   counts: NavCounts;
   demo: boolean;
+  staff: StaffInfo | null;
   sidebarRef: React.RefObject<HTMLElement | null>;
   collapsed: boolean;
   onToggleCollapsed: () => void;
@@ -77,6 +81,12 @@ export function FloatingSidebar({
     return () => observer.disconnect();
   }, [activeHref, collapsed, sidebarRef]);
   const [profileOpen, setProfileOpen] = useState(false);
+  const signOut = async () => {
+    const supabase = createSupabaseBrowserClient();
+    if (supabase) await supabase.auth.signOut();
+    router.push("/sign-in");
+    router.refresh();
+  };
   const profileRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const close = (event: MouseEvent) => {
@@ -113,24 +123,24 @@ export function FloatingSidebar({
         ))}
       </nav>
       <div className="side-bottom">
-        <div className="side-bottom-label">{demo ? "SIGNED IN AS / DEMO" : "SIGNED IN AS"}</div>
+        <div className="side-bottom-label">{staff ? "SIGNED IN AS" : demo ? "SIGNED IN AS / DEMO" : "SIGNED IN AS"}</div>
         <div className="side-profile-wrap" ref={profileRef}>
         <button type="button" className="side-profile" onClick={() => setProfileOpen((current) => !current)} aria-expanded={profileOpen} aria-label="Open account menu">
           <span className="avatar-small" aria-hidden="true">
-            LS
+            {staff?.initials ?? "LS"}
           </span>
           <span className="side-profile-copy">
-            <strong>Studio Manager</strong>
-            <small>LGNDRY.Co / Admin</small>
+            <strong>{staff?.name ?? "Studio Manager"}</strong>
+            <small>{staff?.roleLabel ?? "LGNDRY.Co / Admin"}</small>
           </span>
           <Icon name="chevron" size={13} className="profile-chevron" />
         </button>
         <div className={`profile-menu${profileOpen ? " is-open" : ""}`} aria-hidden={!profileOpen}>
-          <div><strong>Studio Manager</strong><span>studio@lgndry.co.za</span></div>
+          <div><strong>{staff?.name ?? "Studio Manager"}</strong><span>{staff?.email ?? "studio@lgndry.co.za"}</span></div>
           <Link href="/settings" onClick={() => setProfileOpen(false)}><Icon name="user" size={15}/> Profile & account</Link>
           <Link href="/notifications" onClick={() => setProfileOpen(false)}><Icon name="bell" size={15}/> Notifications</Link>
           <Link href="/settings" onClick={() => setProfileOpen(false)}><Icon name="sliders" size={15}/> Workspace settings</Link>
-          <button type="button" onClick={() => router.push("/sign-in")}><Icon name="logout" size={15}/> Sign out</button>
+          <button type="button" onClick={signOut}><Icon name="logout" size={15}/> Sign out</button>
         </div>
         </div>
         <div className="side-version">{demo ? "DEMO ENVIRONMENT" : "PRODUCTION"} &nbsp; V 2.0</div>
