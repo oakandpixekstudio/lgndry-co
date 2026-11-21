@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Not allowed." }, { status: 401 });
   }
 
-  revalidateTag("catalogue", "max");
+  // expire: 0 means the next visitor waits for the fresh catalogue instead of being shown the old one while it loads.
+  revalidateTag("catalogue", { expire: 0 });
   return NextResponse.json({ ok: true });
 }
