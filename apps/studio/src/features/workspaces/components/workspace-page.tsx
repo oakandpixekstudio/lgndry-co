@@ -14,8 +14,27 @@ function Status({ label, tone }: { label: string; tone?: WorkspaceTone }) {
   return <span className={`workspace-status${toneClass(tone)}`}>{label}</span>;
 }
 
+function RelatedSubview({ label, record }: { label: string; record: WorkspaceRow }) {
+  const [items, setItems] = useState(() => [
+    { id: `${record.id}-${label}-1`, title: `${label} record`, detail: `Linked to ${record.title}`, state: "Current" },
+    { id: `${record.id}-${label}-2`, title: `${record.title} update`, detail: "18 Nov 2026 · Studio Manager", state: "Logged" },
+  ]);
+  const [selected, setSelected] = useState(items[0]?.id ?? "");
+
+  return (
+    <section className="record-subview" aria-label={`${label} for ${record.title}`}>
+      <header><div><span className="record-eyebrow">{record.id}</span><h3>{label}</h3><p>Related {label.toLowerCase()} for this record.</p></div><button type="button" className="button secondary" onClick={() => { const item = { id: `${record.id}-${label}-${items.length + 1}`, title: `New ${label.toLowerCase()} entry`, detail: "Created just now · Studio Manager", state: "Draft" }; setItems((current) => [item, ...current]); setSelected(item.id); }}><Icon name="plus" size={14} /> Add</button></header>
+      <div className="record-subview-list">
+        {items.map((item) => <button type="button" key={item.id} className={selected === item.id ? "is-selected" : ""} onClick={() => setSelected(item.id)}><span><strong>{item.title}</strong><small>{item.detail}</small></span><Status label={item.state} tone={item.state === "Current" ? "success" : "neutral"} /></button>)}
+      </div>
+      <div className="record-subview-preview"><span className="record-eyebrow">Selected entry</span><strong>{items.find((item) => item.id === selected)?.title ?? "No entry selected"}</strong><p>{items.find((item) => item.id === selected)?.detail ?? "Create an entry to begin."}</p></div>
+    </section>
+  );
+}
+
 function DetailPanel({ config, record, onDemoAction, onEdit, onDelete }: { config: WorkspaceConfig; record: WorkspaceRow; onDemoAction: (label: string) => void; onEdit: () => void; onDelete: () => void }) {
   const { detail } = record;
+  const [activeTab, setActiveTab] = useState(0);
   return (
     <aside className="record-panel" aria-label={`${record.title} details`}>
       <div className="record-art">
@@ -42,12 +61,13 @@ function DetailPanel({ config, record, onDemoAction, onEdit, onDelete }: { confi
 
         <div className="record-tabs" role="tablist" aria-label="Record sections">
           {config.detailTabs.map((tab, index) => (
-            <button key={tab} type="button" role="tab" aria-selected={index === 0} onClick={() => index !== 0 && onDemoAction(tab)}>
+            <button key={tab} type="button" role="tab" aria-selected={index === activeTab} onClick={() => setActiveTab(index)}>
               {tab}
             </button>
           ))}
         </div>
 
+        {activeTab === 0 ? <>
         <div className="record-metrics">
           {detail.metrics.map((metric) => (
             <div key={metric.label}>
@@ -124,6 +144,7 @@ function DetailPanel({ config, record, onDemoAction, onEdit, onDelete }: { confi
             <div><strong>{detail.callout.title}</strong><span>{detail.callout.text}</span></div>
           </div>
         ) : null}
+        </> : <RelatedSubview key={`${record.id}-${config.detailTabs[activeTab]}`} label={config.detailTabs[activeTab] ?? "Related records"} record={record} />}
 
         <footer className="record-actions">
           {config.detailActions.map((action, index) => (
@@ -192,6 +213,13 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
   const openEdit = (id: string) => {
     setEditingId(id);
     setDialogMode("edit");
+  };
+
+  const openRecord = (id: string) => {
+    setSelectedId(id);
+    if (window.innerWidth <= 1380) {
+      window.requestAnimationFrame(() => document.querySelector(".record-panel")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
   };
 
   const saveRecord = (values: CrudValues) => {
@@ -304,7 +332,7 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
                   <tr key={item.id} className={selected?.id === item.id ? "is-selected" : ""}>
                     <td className="select-cell"><span className="fake-check" /></td>
                     <td className="record-cell">
-                      <button type="button" onClick={() => setSelectedId(item.id)}>
+                      <button type="button" onClick={() => openRecord(item.id)} aria-label={`Open ${item.title}`}>
                         <span className="row-thumb"><Image src={item.image ?? ART_FALLBACK} alt="" fill sizes="48px" unoptimized /></span>
                         <span><strong>{item.title}</strong><small>{item.subtitle}</small></span>
                       </button>
@@ -321,7 +349,7 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
           <footer className="workspace-list-footer"><span>Showing 1–{rows.length} of {config.tabs[0]?.count ?? rows.length} {config.entity}</span><div><button type="button" aria-label="Previous page">‹</button><button type="button" className="active">1</button><button type="button">2</button><button type="button">3</button><span>…</span><button type="button" aria-label="Next page">›</button></div></footer>
         </section>
 
-        {selected ? <DetailPanel config={config} record={selected} onDemoAction={demoAction} onEdit={() => openEdit(selected.id)} onDelete={() => setDeleteId(selected.id)} /> : <aside className="record-panel workspace-empty">Create a record to begin.</aside>}
+        {selected ? <DetailPanel key={selected.id} config={config} record={selected} onDemoAction={demoAction} onEdit={() => openEdit(selected.id)} onDelete={() => setDeleteId(selected.id)} /> : <aside className="record-panel workspace-empty">Create a record to begin.</aside>}
       </div>
 
       {notice ? <div className="demo-toast" role="status"><strong>Demo workspace</strong><span>{notice}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss">×</button></div> : null}

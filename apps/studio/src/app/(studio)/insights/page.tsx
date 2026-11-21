@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { WorkspacePage } from "@/features/workspaces/components/workspace-page";
-import { insightsWorkspace } from "@/features/workspaces/admin-workspaces";
+import { InsightsDashboard } from "@/features/insights/components/insights-dashboard";
 
 export const metadata: Metadata = { title: "Insights" };
 
 export default function InsightsPage() {
-  return <WorkspacePage config={insightsWorkspace} />;
+  return <InsightsDashboard />;
 }
