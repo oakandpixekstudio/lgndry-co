@@ -26,7 +26,7 @@ await db.exec(`
   grant usage on schema auth to authenticated, anon;
   grant usage on schema public to authenticated, anon;
 `);
-for (const f of ["0001_core_identity", "0002_catalogue_and_media", "0003_customers_orders_storefront", "0005_publish_guard_and_grants", "0006_staff_self_read", "0007_catalogue_save_and_scheduling", "0008_storefront_views_for_the_website", "0009_website_intake", "0010_staff_add_customers"]) {
+for (const f of ["0001_core_identity", "0002_catalogue_and_media", "0003_customers_orders_storefront", "0005_publish_guard_and_grants", "0006_staff_self_read", "0007_catalogue_save_and_scheduling", "0008_storefront_views_for_the_website", "0009_website_intake", "0010_staff_add_customers", "0011_bookings"]) {
   try {
     await db.exec(fs.readFileSync(dir + f + ".sql", "utf8"));
     results.push(`applied ${f}`);
@@ -313,6 +313,57 @@ const ownerDeletes = await as(staff, async () => {
   }
 });
 ok("not even the owner can delete a customer (they are archived instead)", ownerDeletes === "refused");
+
+// ───────── bookings (0011) ─────────
+const bookCust = (await db.query("select id from customers where primary_email_normalized = 'walkin@example.com' and archived_at is null")).rows[0].id;
+const tryDb = (uid, sql, params = []) =>
+  as(uid, async () => {
+    try {
+      const res = await db.query(sql, params);
+      return { ok: true, rows: res.rows };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  });
+const newBooking = (uid, title = "Portrait Series") =>
+  tryDb(uid, "insert into booking_requests (workspace_id, customer_id, title, service_type) values ($1, $2, $3, 'Portrait') returning id, booking_ref, status", [ws, bookCust, title]);
+
+r = await newBooking(staff);
+ok("the owner can create a booking", r.ok, r.error);
+const bk1 = r.rows?.[0];
+ok("a booking gets a reference like BK-YYYY-0001 and starts as requested", /^BK-\d{4}-0001$/.test(bk1?.booking_ref ?? "") && bk1?.status === "requested", bk1?.booking_ref);
+r = await newBooking(staff, "Brand Campaign");
+ok("the next booking gets the next number", /-0002$/.test(r.rows?.[0]?.booking_ref ?? ""), r.rows?.[0]?.booking_ref);
+r = await newBooking(photog);
+ok("a photographer cannot create a booking", !r.ok && /row-level security/i.test(r.error), r.error);
+r = await newBooking(stranger);
+ok("a non-member cannot create a booking", !r.ok && /row-level security|permission denied/i.test(r.error), r.error);
+r = await tryDb(staff, "insert into booking_requests (workspace_id, customer_id, title, preferred_start_at, preferred_end_at) values ($1, $2, 'Backwards', '2026-12-02 12:00+02', '2026-12-02 09:00+02')", [ws, bookCust]);
+ok("a shoot cannot end before it starts", !r.ok && /check constraint/i.test(r.error), r.error);
+r = await tryDb(staff, "insert into booking_requests (workspace_id, customer_id, title) values ($1, $2, '   ')", [ws, bookCust]);
+ok("a booking needs a title", !r.ok && /check constraint/i.test(r.error), r.error);
+
+await tryDb(staff, "update booking_requests set status = 'confirmed' where id = $1", [bk1.id]);
+let ms = (await db.query("select confirmed_at, completed_at, cancelled_at from booking_requests where id = $1", [bk1.id])).rows[0];
+ok("confirming a booking stamps the confirmed time", ms.confirmed_at !== null && ms.completed_at === null);
+await tryDb(staff, "update booking_requests set status = 'completed' where id = $1", [bk1.id]);
+ms = (await db.query("select completed_at from booking_requests where id = $1", [bk1.id])).rows[0];
+ok("completing a booking stamps the completed time", ms.completed_at !== null);
+await tryDb(staff, "update booking_requests set status = 'cancelled' where id = $1", [bk1.id]);
+ms = (await db.query("select cancelled_at from booking_requests where id = $1", [bk1.id])).rows[0];
+ok("cancelling a booking stamps the cancelled time", ms.cancelled_at !== null);
+
+r = await tryDb(photog, "select id from booking_requests");
+ok("a photographer sees no bookings unless they are assigned", r.ok && r.rows.length === 0, String(r.rows?.length));
+await db.query("update booking_requests set assignee_id = $1 where id = $2", [photog, bk1.id]);
+r = await tryDb(photog, "select id from booking_requests");
+ok("a photographer sees a booking once it is assigned to them", r.ok && r.rows.length === 1, String(r.rows?.length));
+r = await tryDb(photog, "update booking_requests set status = 'in_progress' where id = $1 returning id", [bk1.id]);
+ok("a photographer cannot change a booking", !r.ok || r.rows.length === 0);
+r = await tryDb(stranger, "select id from booking_requests");
+ok("a non-member sees no bookings", !r.ok || r.rows.length === 0);
+r = await tryDb(staff, "delete from booking_requests where id = $1", [bk1.id]);
+ok("not even the owner can delete a booking (it is cancelled instead)", !r.ok && /permission denied/i.test(r.error), r.error);
 
 console.log(results.join("\n"));
 if (results.some((line) => line.startsWith("FAIL"))) process.exit(1);
