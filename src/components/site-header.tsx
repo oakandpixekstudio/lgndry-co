@@ -138,7 +138,9 @@ function ScreenShell({ open, label, onClose, children }: { open: boolean; label:
 }
 
 function MenuScreen({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { collections: COLLECTIONS } = useCatalogue();
+  const { collections: COLLECTIONS, slots } = useCatalogue();
+  // Only shown once the studio has chosen a "Menu feature image" in the CRM; there is deliberately no built-in fallback.
+  const feature = slots["menu.collection"];
   return (
     <ScreenShell open={open} label="Site navigation" onClose={onClose}>
       <div className="grid min-h-[72vh] items-center gap-12 px-[var(--offset)] pb-16 lg:grid-cols-[1fr_320px]">
@@ -158,6 +160,7 @@ function MenuScreen({ open, onClose }: { open: boolean; onClose: () => void }) {
           ))}
         </nav>
         <aside className="menu-aside space-y-10 text-[13px] leading-relaxed">
+          {feature ? <Photo plain src={feature.src} alt={feature.alt} focal={feature.focal} className="aspect-square w-full max-w-[320px]" sizes="320px" /> : null}
           <div>
             <p className="micro mb-3 text-ash">Collections</p>
             <ul className="space-y-2">
