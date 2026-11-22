@@ -1,6 +1,6 @@
 # Database migrations (DRAFT)
 
-Tests: `pnpm --filter @lgndry/database test:db` runs 0001-0003 and 0005-0010 on a throwaway in-memory Postgres and checks the catalogue rules and permissions (no Supabase needed).
+Tests: `pnpm --filter @lgndry/database test:db` runs 0001-0003 and 0005-0011 on a throwaway in-memory Postgres and checks the catalogue rules and permissions (no Supabase needed).
 
 Status: `0001`-`0003` are applied to the owner's Supabase project and pass `tests/smoke.sql`. `0004` and `0005` are drafts, parsed for syntax only; apply them, then run `tests/smoke_0004_0005.sql`.
 
@@ -14,6 +14,7 @@ Status: `0001`-`0003` are applied to the owner's Supabase project and pass `test
 | `0008_storefront_views_for_the_website.sql` | the website's read views: `image_id` on picture copies, and a collection shows as soon as it has a live work |
 | `0009_website_intake.sql` | `intake_enquiry()` and `intake_newsletter()`: the only way a website form reaches the CRM (service role only; validates, refuses floods, records newsletter consent) |
 | `0010_staff_add_customers.sql` | lets the owner and studio managers add a customer by hand (insert only; customers are archived, never deleted) |
+| `0011_bookings.sql` | photography bookings: one row per request, the pipeline statuses, milestone times, who may see or change them. No prices, quotes or deposits yet |
 | `0005_publish_guard_and_grants.sql` | publish guard now also protects published works when images or variants change; grants signed-in users access to the `app` schema (without it every staff policy would fail) |
 
 Deliberately not included (blocked on open questions in `docs/12`): payments and webhooks, invoices and tax, shipping rates.

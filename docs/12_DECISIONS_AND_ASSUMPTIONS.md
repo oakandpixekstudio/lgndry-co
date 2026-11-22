@@ -227,3 +227,10 @@ Do not treat this document as authority to invent merchant credentials, tax stat
 - Proposed choice: signed-in staff see the real customers (website enquirers, newsletter subscribers, people added by hand) with their enquiries and whether they hold a marketing-email consent. Owners and studio managers can add a customer, edit notes and archive or restore. Nobody can delete: orders and invoices must always point at someone. Migration 0010 adds the missing insert permission for those two roles. Phone numbers are stored in international form (a 10-digit South African number is converted to +27).
 - Not built yet: orders and lifetime value (no orders exist), merging duplicate customers, export of a customer's data (docs/17 C3).
 - Status: Proposed
+
+### DEC-2026-021 — Bookings are tracked by hand, with no money in them yet
+- Date: 2026-11-22
+- Context: the Bookings screen showed sample data only. Service packages, prices, deposit rules and cancellation terms are the studio's decisions (docs/17 D5) and have not been made.
+- Proposed choice: migration 0011 adds one table of booking requests with the planned pipeline. The owner and studio managers create bookings (blank, or from an open photography enquiry, which is then marked converted) and move them between stages. The shoot type is free text, because the list of services is the studio's to define. Quotes, deposits, invoices and double-booking checks are NOT built. The two payment stages (quoted, awaiting deposit) exist in the database but the screen does not offer them. A photographer sees only bookings assigned to them, and no customer contact details. Bookings are cancelled, never deleted.
+- Open: assigning a photographer in the screen, editing a shoot's date after it is created, a calendar view, the confirmation rule (docs/17 D5: does confirming need a deposit?).
+- Status: Proposed
