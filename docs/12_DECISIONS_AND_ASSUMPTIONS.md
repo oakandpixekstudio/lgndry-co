@@ -234,3 +234,10 @@ Do not treat this document as authority to invent merchant credentials, tax stat
 - Proposed choice: migration 0011 adds one table of booking requests with the planned pipeline. The owner and studio managers create bookings (blank, or from an open photography enquiry, which is then marked converted) and move them between stages. The shoot type is free text, because the list of services is the studio's to define. Quotes, deposits, invoices and double-booking checks are NOT built. The two payment stages (quoted, awaiting deposit) exist in the database but the screen does not offer them. A photographer sees only bookings assigned to them, and no customer contact details. Bookings are cancelled, never deleted.
 - Open: assigning a photographer in the screen, editing a shoot's date after it is created, a calendar view, the confirmation rule (docs/17 D5: does confirming need a deposit?).
 - Status: Proposed
+
+### DEC-2026-022 — Unused picture files can be found and removed by the owner
+- Date: 2026-11-22
+- Context: replaced pictures and abandoned uploads stay in storage forever.
+- Proposed choice: on Editions, Website images, the owner can check for unused files (report only) and then confirm a permanent removal. Unused means: an original that no work or website place points at, plus its web copies, or a file in the uploads folder never recorded as a picture. Anything under 24 hours old is never touched (it may belong to a work not yet saved). The list is recomputed on the server at delete time, records are removed before files, the database refuses to delete anything still referenced, and each run is written to the audit log. Needs the website-server key on the studio project (same one used for uploads).
+- Also: the website menu shows the "Menu feature image" when the studio sets one, and nothing when not (no built-in fallback).
+- Status: Proposed

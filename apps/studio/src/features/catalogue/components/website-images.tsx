@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import { useCatalogueApi } from "../api";
 import type { MediaSlot } from "../types";
 import { EditionsSubnav } from "./editions-subnav";
+import { StorageTidy } from "./storage-tidy";
 
 function SlotCard({ slot }: { slot: MediaSlot }) {
   const api = useCatalogueApi();
@@ -122,6 +123,7 @@ export function WebsiteImages() {
       <div className="cat-slots">
         {slots.map((slot) => <SlotCard key={`${slot.key}-${slot.altText}-${slot.imageUrl?.slice(-24)}-${slot.focalX}-${slot.focalY}`} slot={slot} />)}
       </div>
+      {api.mode === "live" && api.canEdit ? <StorageTidy /> : null}
     </div>
   );
 }
