@@ -365,5 +365,20 @@ ok("a non-member sees no bookings", !r.ok || r.rows.length === 0);
 r = await tryDb(staff, "delete from booking_requests where id = $1", [bk1.id]);
 ok("not even the owner can delete a booking (it is cancelled instead)", !r.ok && /permission denied/i.test(r.error), r.error);
 
+// ───────── file tidy-up safety net ─────────
+// The tidy-up deletes unused picture records with the service key. The database itself must refuse to delete a picture
+// a website place still points at, even if the tidy-up code were ever wrong.
+await db.exec(`
+  insert into assets (id, workspace_id, kind, bucket, object_key, mime_type, size_bytes) values
+    ('a0000000-0000-0000-0000-0000000000f1','${ws}','master','artwork-masters','${ws}/uploads/in-use.jpg','image/jpeg',10),
+    ('a0000000-0000-0000-0000-0000000000f2','${ws}','master','artwork-masters','${ws}/uploads/unused.jpg','image/jpeg',10);
+  insert into media_slots (workspace_id, slot_key, asset_id, alt_text) values ('${ws}','menu.collection','a0000000-0000-0000-0000-0000000000f1','Menu picture');
+`);
+let tidy;
+try { await db.query("delete from assets where id = 'a0000000-0000-0000-0000-0000000000f1'"); tidy = "deleted"; } catch (e) { tidy = e.message; }
+ok("a picture a website place uses cannot be deleted", /foreign key|violates/i.test(tidy), tidy);
+try { await db.query("delete from assets where id = 'a0000000-0000-0000-0000-0000000000f2'"); tidy = "deleted"; } catch (e) { tidy = e.message; }
+ok("an unused picture can be deleted", tidy === "deleted", tidy);
+
 console.log(results.join("\n"));
 if (results.some((line) => line.startsWith("FAIL"))) process.exit(1);
