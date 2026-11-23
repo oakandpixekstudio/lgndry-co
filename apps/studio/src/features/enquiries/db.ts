@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllRows } from "@/lib/supabase/paged";
 
 export type EnquiryStatus = "new" | "in_progress" | "qualified" | "converted" | "closed";
 export type EnquiryCategory = "availability" | "general" | "commission" | "photography";
@@ -39,14 +40,19 @@ interface Row {
 
 /** The latest enquiries, newest first. Row-level security decides who may see them (owner, studio manager, finance). */
 export async function fetchEnquiries(db: SupabaseClient, workspaceId: string): Promise<LiveEnquiry[]> {
-  const { data, error } = await db
-    .from("enquiries")
-    .select("id, enquiry_ref, contact_name, contact_email, phone, organisation, category, topic, details, message, status, source, received_at, artworks(title, slug)")
-    .eq("workspace_id", workspaceId)
-    .order("received_at", { ascending: false })
-    .limit(500);
-  if (error) throw new Error(`Could not load enquiries: ${error.message}`);
-  return ((data ?? []) as unknown as Row[]).map((row) => ({
+  let rows: Row[];
+  try {
+    rows = await fetchAllRows<Row>((from, to) =>
+      db.from("enquiries")
+        .select("id, enquiry_ref, contact_name, contact_email, phone, organisation, category, topic, details, message, status, source, received_at, artworks(title, slug)")
+        .eq("workspace_id", workspaceId)
+        .order("received_at", { ascending: false })
+        .order("id")
+        .range(from, to));
+  } catch (problem) {
+    throw new Error(`Could not load enquiries: ${problem instanceof Error ? problem.message : "database error"}`);
+  }
+  return rows.map((row) => ({
     id: row.id,
     ref: row.enquiry_ref,
     name: row.contact_name,

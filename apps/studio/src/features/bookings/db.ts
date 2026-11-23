@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllRows } from "@/lib/supabase/paged";
 
 export type BookingStatus =
   | "requested" | "review" | "quoted" | "awaiting_deposit" | "confirmed" | "scheduled"
@@ -59,9 +60,12 @@ const toBooking = (row: Row): LiveBooking => ({
 
 /** Bookings with their customer in one trip. Row-level security decides who sees which (a photographer only sees their own shoots). */
 export async function fetchBookings(db: SupabaseClient, workspaceId: string): Promise<LiveBooking[]> {
-  const { data, error } = await db.from("booking_requests").select(SELECT).eq("workspace_id", workspaceId).order("created_at", { ascending: false }).limit(1000);
-  if (error) throw new Error(`Could not load bookings: ${error.message || error.code || "database error"}`);
-  return ((data ?? []) as unknown as Row[]).map(toBooking);
+  try {
+    const rows = await fetchAllRows<Row>((from, to) => db.from("booking_requests").select(SELECT).eq("workspace_id", workspaceId).order("created_at", { ascending: false }).order("id").range(from, to));
+    return rows.map(toBooking);
+  } catch (problem) {
+    throw new Error(`Could not load bookings: ${problem instanceof Error ? problem.message : "database error"}`);
+  }
 }
 
 /** People and open photography enquiries the "New booking" form can start from. Only the owner and studio manager can add bookings. */
@@ -108,6 +112,23 @@ export async function createBooking(db: SupabaseClient, workspaceId: string, inp
       service_type: input.serviceType.trim() || null, location_text: input.location.trim() || null, brief: input.brief.trim() || null,
       budget_note: input.budgetNote.trim() || null, preferred_start_at: start, preferred_end_at: end,
     })
+    .select(SELECT)
+    .single();
+  if (error) return { error: friendly(error) };
+  return { booking: toBooking(data as unknown as Row) };
+}
+
+/** Saves the details of an existing booking: its title, shoot type, place, stage and internal notes. */
+export async function updateBooking(
+  db: SupabaseClient,
+  id: string,
+  input: { title: string; serviceType: string; location: string; status: BookingStatus; notes: string },
+): Promise<{ booking: LiveBooking } | { error: string }> {
+  if (!input.title.trim()) return { error: "Give the booking a title." };
+  const { data, error } = await db
+    .from("booking_requests")
+    .update({ title: input.title.trim(), service_type: input.serviceType.trim() || null, location_text: input.location.trim() || null, status: input.status, internal_notes: input.notes.trim() || null })
+    .eq("id", id)
     .select(SELECT)
     .single();
   if (error) return { error: friendly(error) };

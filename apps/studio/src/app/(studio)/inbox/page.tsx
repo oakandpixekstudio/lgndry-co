@@ -1,48 +1,40 @@
 import type { Metadata } from "next";
 import { PhasePlaceholder } from "@/components/editorial/phase-placeholder";
 import { getStaffContext } from "@/features/auth/staff";
-import { InboxLive } from "@/features/inbox/components/inbox-live";
-import { fetchInbox, type PickPerson, type Thread } from "@/features/inbox/db";
+import { fetchInbox, type Thread } from "@/features/inbox/db";
 import { InboxWorkspace } from "@/features/workspaces/components/inbox-workspace";
+import { LiveInbox } from "@/features/workspaces/components/live-inbox";
 import { isDemoMode } from "@/lib/demo-mode";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Inbox" };
 
 /**
- * Signed in as owner or studio manager: the real conversations (website form messages plus recorded entries).
+ * The designed Inbox. Signed in as owner or studio manager: real website enquiries and recorded entries fill it in.
  * Other roles do not see customer messages. Demo mode keeps the sample screen.
  */
 export default async function InboxPage() {
   const context = await getStaffContext();
 
   if (context.status === "ok") {
-    const role = context.staff.role;
+    const { role, workspaceId } = context.staff;
     if (role !== "owner" && role !== "studio_manager") {
-      return (
-        <div className="cat-page">
-          <div className="cat-empty-box" role="status">The Inbox is available to the studio owner and studio managers.</div>
-        </div>
-      );
+      return <div className="cat-page"><div className="cat-empty-box" role="status">The Inbox is available to the studio owner and studio managers.</div></div>;
     }
     const supabase = await createSupabaseServerClient();
-    let data: { threads: Thread[]; people: PickPerson[] } | null = null;
+    let threads: Thread[] | null = null;
     let problem = "";
     if (supabase) {
       try {
-        data = await fetchInbox(supabase, context.staff.workspaceId);
+        threads = (await fetchInbox(supabase, workspaceId)).threads;
       } catch (error) {
         problem = error instanceof Error ? error.message : "";
       }
     }
-    if (!data) {
-      return (
-        <div className="cat-page">
-          <div className="cat-empty-box" role="alert">The inbox could not be loaded. {problem} Check that migrations 0001 to 0012 have been applied, then reload.</div>
-        </div>
-      );
+    if (!threads) {
+      return <div className="cat-page"><div className="cat-empty-box" role="alert">The inbox could not be loaded. {problem} Check that migrations 0001 to 0013 have been applied, then reload.</div></div>;
     }
-    return <InboxLive initial={data.threads} people={data.people} workspaceId={context.staff.workspaceId} />;
+    return <LiveInbox threads={threads} workspaceId={workspaceId} />;
   }
 
   if (isDemoMode()) return <InboxWorkspace />;

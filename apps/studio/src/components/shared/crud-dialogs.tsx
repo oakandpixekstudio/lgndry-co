@@ -8,8 +8,10 @@ import { Icon } from "@/components/icons";
 export interface CrudField {
   key: string;
   label: string;
-  type?: "text" | "email" | "date" | "textarea";
+  type?: "text" | "email" | "date" | "textarea" | "select";
   placeholder?: string;
+  /** For type "select": the choices. */
+  options?: string[];
 }
 
 export type CrudValues = Record<string, string>;
@@ -23,9 +25,16 @@ export function CrudRecordDialog({
   initialValues,
   initialImages = [],
   supportsMedia = false,
+  live = false,
+  error = null,
+  busy = false,
   onClose,
   onSave,
 }: {
+  /** Saving to the real database (not the sample session): changes the wording, and shows why a save failed. */
+  live?: boolean;
+  error?: string | null;
+  busy?: boolean;
   mode: "create" | "edit";
   entity: string;
   fields: CrudField[];
@@ -86,7 +95,7 @@ export function CrudRecordDialog({
         <header className="crud-dialog-header">
           <div className="crud-dialog-index">{mode === "create" ? "NEW RECORD" : "EDIT RECORD"}</div>
           <h2 id={titleId}>{mode === "create" ? `Create ${singular}` : `Update ${singular}`}</h2>
-          <p>{mode === "create" ? "Add a new record to this prototype workspace." : "Change the record details shown throughout this workspace."}</p>
+          <p>{live ? "This is saved to the studio database." : mode === "create" ? "Add a new record to this prototype workspace." : "Change the record details shown throughout this workspace."}</p>
           <button ref={closeRef} type="button" onClick={close} aria-label="Close dialog"><Icon name="close" size={19} /></button>
         </header>
         <form className="crud-form" onSubmit={(event) => { event.preventDefault(); onSave(values, { images }); }}>
@@ -94,7 +103,11 @@ export function CrudRecordDialog({
             {fields.map((field, index) => (
               <label key={field.key} className={field.type === "textarea" ? "crud-field-wide" : undefined}>
                 <span>{field.label}</span>
-                {field.type === "textarea" ? (
+                {field.type === "select" ? (
+                  <select value={values[field.key] ?? ""} onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}>
+                    {(field.options ?? []).map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                ) : field.type === "textarea" ? (
                   <textarea value={values[field.key] ?? ""} placeholder={field.placeholder} onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))} />
                 ) : (
                   <input required={index === 0} type={field.type ?? "text"} value={values[field.key] ?? ""} placeholder={field.placeholder} onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))} />
@@ -112,9 +125,9 @@ export function CrudRecordDialog({
             </article>)}</div> : <button type="button" className="crud-media-empty" onClick={() => fileRef.current?.click()}><Icon name="image" size={28}/><strong>Upload the record image series</strong><span>PNG, JPG, WebP or AVIF · select more than one file</span></button>}
           </section> : null}
           <footer className="crud-dialog-footer">
-            <span>Prototype data · stored in this session only</span>
+            <span>{error ? <b role="alert">{error}</b> : live ? "Saved to the studio database" : "Prototype data · stored in this session only"}</span>
             <button type="button" className="button secondary" onClick={close}>Cancel</button>
-            <button type="submit" className="button"><Icon name={mode === "create" ? "plus" : "check"} size={15} /> {mode === "create" ? "Create record" : "Save changes"}</button>
+            <button type="submit" className="button" disabled={busy}><Icon name={mode === "create" ? "plus" : "check"} size={15} /> {busy ? "Saving…" : mode === "create" ? "Create record" : "Save changes"}</button>
           </footer>
         </form>
       </section>
@@ -122,7 +135,14 @@ export function CrudRecordDialog({
   );
 }
 
-export function DeleteConfirmDialog({ entityLabel, recordLabel, onCancel, onConfirm }: { entityLabel: string; recordLabel: string; onCancel: () => void; onConfirm: () => void }) {
+export function DeleteConfirmDialog({ entityLabel, recordLabel, onCancel, onConfirm, copy }: {
+  entityLabel: string;
+  recordLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  /** Wording for records that are archived or cancelled, never deleted. Leave out for a real delete. */
+  copy?: { index: string; title: string; note: string; keep: string; button: string };
+}) {
   const titleId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const scrimRef = useRef<HTMLDivElement>(null);
@@ -139,12 +159,12 @@ export function DeleteConfirmDialog({ entityLabel, recordLabel, onCancel, onConf
     <div className="crud-scrim" ref={scrimRef} role="presentation" onMouseDown={(event) => event.target === event.currentTarget && cancel()}>
       <section className="crud-dialog crud-confirm" role="alertdialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="crud-confirm-icon"><Icon name="alert" size={26} /></div>
-        <div className="crud-dialog-index">DELETE {entityLabel.toUpperCase()}</div>
-        <h2 id={titleId}>Are you sure you want to delete this?</h2>
-        <p><strong>{recordLabel}</strong> will be removed. This action cannot be undone.</p>
+        <div className="crud-dialog-index">{copy?.index ?? `DELETE ${entityLabel.toUpperCase()}`}</div>
+        <h2 id={titleId}>{copy?.title ?? "Are you sure you want to delete this?"}</h2>
+        <p><strong>{recordLabel}</strong> {copy?.note ?? "will be removed. This action cannot be undone."}</p>
         <footer className="crud-dialog-footer">
-          <button ref={cancelRef} type="button" className="button secondary" onClick={cancel}>Keep record</button>
-          <button type="button" className="button danger" onClick={onConfirm}><Icon name="trash" size={15} /> Delete record</button>
+          <button ref={cancelRef} type="button" className="button secondary" onClick={cancel}>{copy?.keep ?? "Keep record"}</button>
+          <button type="button" className="button danger" onClick={onConfirm}><Icon name="trash" size={15} /> {copy?.button ?? "Delete record"}</button>
         </footer>
       </section>
     </div>

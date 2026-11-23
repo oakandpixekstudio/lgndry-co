@@ -6,40 +6,32 @@ import { IntelligenceHero } from "@/features/intelligence/components/intelligenc
 import { KpiRail } from "@/features/intelligence/components/kpi-rail";
 import { SalesPanel } from "@/features/intelligence/components/sales-panel";
 import { SignalPanel } from "@/features/intelligence/components/signal-panel";
-import { getIntelligenceSnapshot } from "@/features/intelligence/queries/get-snapshot";
 import { getStaffContext } from "@/features/auth/staff";
-import { fetchOverview, type OverviewData } from "@/features/overview/db";
-import { OverviewLive } from "@/features/overview/overview-live";
-import { formatLongDate } from "@/lib/format";
+import { buildLiveSnapshot } from "@/features/intelligence/queries/live-snapshot";
+import { getIntelligenceSnapshot } from "@/features/intelligence/queries/get-snapshot";
+import type { SnapshotResult } from "@/features/intelligence/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { formatLongDate } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Intelligence Center" };
 
+/** Signed-in staff: the same designed layout, filled from the studio's own records. */
+async function liveResult(workspaceId: string, role: string): Promise<SnapshotResult> {
+  if (role !== "owner" && role !== "studio_manager" && role !== "finance") {
+    return { status: "unavailable", reason: "The Intelligence Center is available to the studio owner, studio managers and finance." };
+  }
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return { status: "unavailable", reason: "The studio is not connected to the database." };
+  try {
+    return { status: "ok", snapshot: await buildLiveSnapshot(supabase, workspaceId) };
+  } catch (error) {
+    return { status: "unavailable", reason: `The figures could not be loaded. ${error instanceof Error ? error.message : ""} Check that migrations 0001 to 0013 have been applied, then reload.` };
+  }
+}
+
 export default async function OverviewPage() {
   const context = await getStaffContext();
-  if (context.status === "ok") {
-    const supabase = await createSupabaseServerClient();
-    let data: OverviewData | null = null;
-    let problem = "";
-    if (supabase) {
-      try {
-        data = await fetchOverview(supabase, context.staff.workspaceId);
-      } catch (error) {
-        problem = error instanceof Error ? error.message : "";
-      }
-    }
-    if (!data) {
-      return (
-        <div className="cat-page">
-          <div className="cat-empty-box" role="alert">The overview could not be loaded. {problem} Check that migrations 0001 to 0010 have been applied, then reload.</div>
-        </div>
-      );
-    }
-    const role = context.staff.role;
-    return <OverviewLive data={data} canSeeEnquiries={role === "owner" || role === "studio_manager" || role === "finance"} />;
-  }
-
-  const result = await getIntelligenceSnapshot();
+  const result = context.status === "ok" ? await liveResult(context.staff.workspaceId, context.staff.role) : await getIntelligenceSnapshot();
   const now = new Date();
 
   if (result.status === "unavailable") {
@@ -75,7 +67,7 @@ export default async function OverviewPage() {
         <SignalPanel eyebrow="Insights" title="Studio intelligence" signals={snapshot.insights} sectionLabel="Studio insights" />
       </div>
 
-      <CommandNotes notes={snapshot.notes} />
+      <CommandNotes notes={snapshot.notes} readOnly={!demo} />
 
       <div className="workspace-foot">
         <span>LGNDRY.Co / Studio Desk &nbsp; / &nbsp; {now.getFullYear()}</span>

@@ -11,7 +11,7 @@ const noteFields = [
   { key: "text", label: "Takeaway", type: "textarea" as const },
 ];
 
-export function CommandNotes({ notes }: { notes: IntelligenceSnapshot["notes"] }) {
+export function CommandNotes({ notes, readOnly = false }: { notes: IntelligenceSnapshot["notes"]; readOnly?: boolean }) {
   const [items, setItems] = useState([
     { id: "NOTE-01", label: "Growth", text: notes.growth },
     { id: "NOTE-02", label: "Opportunity", text: notes.opportunity },
@@ -44,14 +44,14 @@ export function CommandNotes({ notes }: { notes: IntelligenceSnapshot["notes"] }
         <div key={item.id} className="command-note-item">
           <div className="caps" style={{ fontSize: 10.5 }}>{String(index + 1).padStart(2, "0")} / {item.label}</div>
           <p>{item.text}</p>
-          <div className="command-note-actions">
+          {readOnly ? null : <div className="command-note-actions">
             <button type="button" aria-label={`Edit ${item.label}`} onClick={() => { setActiveId(item.id); setMode("edit"); }}><Icon name="pencil" size={13} /></button>
             <button type="button" aria-label={`Delete ${item.label}`} onClick={() => setDeleteId(item.id)}><Icon name="trash" size={13} /></button>
-          </div>
+          </div>}
         </div>
       ))}
       <div className="command-cta">
-        <button type="button" className="button secondary" onClick={() => { setActiveId(null); setMode("create"); }}><Icon name="plus" size={14} /> New note</button>
+        {readOnly ? null : <button type="button" className="button secondary" onClick={() => { setActiveId(null); setMode("create"); }}><Icon name="plus" size={14} /> New note</button>}
         <Link href="/insights" className="button">View full insights <Icon name="arrow" size={14} /></Link>
       </div>
       {mode ? <CrudRecordDialog mode={mode} entity="notes" fields={noteFields} initialValues={mode === "edit" && active ? { label: active.label, text: active.text } : undefined} onClose={() => { setMode(null); setActiveId(null); }} onSave={save} /> : null}
