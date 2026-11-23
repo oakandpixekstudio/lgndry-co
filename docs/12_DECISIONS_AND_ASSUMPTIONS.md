@@ -241,3 +241,38 @@ Do not treat this document as authority to invent merchant credentials, tax stat
 - Proposed choice: on Editions, Website images, the owner can check for unused files (report only) and then confirm a permanent removal. Unused means: an original that no work or website place points at, plus its web copies, or a file in the uploads folder never recorded as a picture. Anything under 24 hours old is never touched (it may belong to a work not yet saved). The list is recomputed on the server at delete time, records are removed before files, the database refuses to delete anything still referenced, and each run is written to the audit log. Needs the website-server key on the studio project (same one used for uploads).
 - Also: the website menu shows the "Menu feature image" when the studio sets one, and nothing when not (no built-in fallback).
 - Status: Proposed
+
+### DEC-2026-023 — The Inbox is a written record until an email service is connected
+- Date: 2026-11-22
+- Context: sending and receiving email needs the client's email service (docs/17 C2, Resend, credentials pending). Faking a mailbox would mislead.
+- Proposed choice: the Inbox shows one conversation per customer: messages from the website forms (the enquiries) plus entries staff record by hand (email, phone, WhatsApp, in person, or a team note). Nothing is sent and incoming email is not read; "Reply by email" opens the user's own mail program. Entries are append-only (no edit or delete; correct by adding), and only the owner and studio managers can read or write them. Migration 0012. When an email service is connected, sent mail will be written to the same table, so the history will not need migrating.
+- Open: reading incoming email automatically, sending from the studio, assigning conversations, attachments.
+- Status: Proposed
+
+### DEC-2026-024 — Insights are counted from real records, with no sales figures yet
+- Date: 2026-11-22
+- Context: the Insights screen showed invented revenue, channel and location figures.
+- Proposed choice: signed in as the owner or a studio manager, Insights shows only what can be counted today: enquiries per week, by topic and by stage; new customers and how they first got in touch; new newsletter subscribers; bookings by stage; works by state. Weeks run Monday to Sunday and months are calendar months, both in Johannesburg time. There is no revenue, channel attribution or location map, because there are no orders, no tracking and no address data to back them. Finance, analysts and photographers cannot read customer data, so they see a message instead of misleading zeros. Demo mode keeps the sample dashboard, marked as demo.
+- Open: revenue and order metrics (after checkout opens), response-time measures (needs a first-reply time), source tracking beyond website forms.
+- Status: Proposed
+
+### DEC-2026-025 — Campaigns are drafts only; sending is off and cannot be turned on by accident
+- Date: 2026-11-22
+- Context: docs/01 CMP-02 allows internal drafts only in the first release and forbids a working Send without a configured email provider and authorisation. The client's Resend credentials, the privacy notice (docs/17 C3) and an unsubscribe mechanism do not exist yet.
+- Proposed choice: the owner and studio managers can write, edit and archive newsletter drafts and see a preview. The audience is a rule that is recounted live: customers with an active marketing-email consent, an email address and no archive, each counted once. Anyone who withdraws consent drops out on their own. The database only accepts the statuses draft and archived, so no code path can mark anything sent or scheduled until a later migration adds them. The Send button is shown disabled, with the four conditions that must be met first. Migration 0013.
+- Open: the sending itself, an unsubscribe link and a way to honour it, approval before sending, frequency limits, any audience beyond the two rules, open and click tracking (needs the opt-in decision in docs/17 C3).
+- Status: Proposed
+
+### DEC-2026-026 — Notifications are worked out from the records, not stored
+- Date: 2026-11-22
+- Context: the bell and Notifications screen showed invented orders, payments and bookings.
+- Proposed choice: signed in, the bell and screen list what is really waiting: new enquiries, booking requests not yet reviewed, and confirmed shoots in the next 7 days. They are recomputed on every page load and clear on their own once handled, so there is no separate "unread" list that could disagree with the records, and no migration. The sidebar badges for Enquiries and Bookings use the same counts. If the figures cannot be worked out (for example a database update is missing) the page still opens, the bell says so, and the badge falls back to the new-enquiry count. Demo mode keeps the sample bell, marked as demo.
+- Not built: "mark as read" and a history of past notifications (needs a table), email or phone alerts for new enquiries (needs the client's email service, docs/17 C2), order, payment and edition alerts (those records do not exist yet).
+- Status: Proposed
+
+### DEC-2026-027 — Settings shows only facts; nothing is editable or invented yet
+- Date: 2026-11-22
+- Context: the sample Settings screen invented a legal name ("LGNDRY Creative (Pty) Ltd"), phone number, brand colours (blue), fake API keys and switches that did nothing.
+- Proposed choice: signed in, Settings is read-only and shows: the person's own account; the studio's name, time zone and currency, with the legal name and VAT shown as "not set, waiting for the owner" until verified details exist (docs/17 A1, A2); which outside services are connected (judged only by whether their settings exist on the server, never showing a value); the team and their roles (owner only, read with the server key); and a table of what each role can do, written to match the database's own rules. Demo mode keeps the sample screen, marked as demo.
+- Not built: editing studio details, brand settings, inviting staff or changing roles from inside the studio (needs two-step sign-in first), templates, automations, API keys, webhooks.
+- Status: Proposed

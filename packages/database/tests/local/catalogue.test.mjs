@@ -26,7 +26,7 @@ await db.exec(`
   grant usage on schema auth to authenticated, anon;
   grant usage on schema public to authenticated, anon;
 `);
-for (const f of ["0001_core_identity", "0002_catalogue_and_media", "0003_customers_orders_storefront", "0005_publish_guard_and_grants", "0006_staff_self_read", "0007_catalogue_save_and_scheduling", "0008_storefront_views_for_the_website", "0009_website_intake", "0010_staff_add_customers", "0011_bookings"]) {
+for (const f of ["0001_core_identity", "0002_catalogue_and_media", "0003_customers_orders_storefront", "0005_publish_guard_and_grants", "0006_staff_self_read", "0007_catalogue_save_and_scheduling", "0008_storefront_views_for_the_website", "0009_website_intake", "0010_staff_add_customers", "0011_bookings", "0012_customer_messages", "0013_campaign_drafts"]) {
   try {
     await db.exec(fs.readFileSync(dir + f + ".sql", "utf8"));
     results.push(`applied ${f}`);
@@ -379,6 +379,79 @@ try { await db.query("delete from assets where id = 'a0000000-0000-0000-0000-000
 ok("a picture a website place uses cannot be deleted", /foreign key|violates/i.test(tidy), tidy);
 try { await db.query("delete from assets where id = 'a0000000-0000-0000-0000-0000000000f2'"); tidy = "deleted"; } catch (e) { tidy = e.message; }
 ok("an unused picture can be deleted", tidy === "deleted", tidy);
+
+// ───────── customer messages (0012) ─────────
+const logMsg = (uid, over = {}) =>
+  tryDb(uid, "insert into customer_messages (workspace_id, customer_id, direction, channel, subject, body, created_by) values ($1, $2, $3, $4, 'Hello', $5, $6) returning id",
+    [over.ws ?? ws, over.customer ?? bookCust, over.direction ?? "out", over.channel ?? "email", over.body ?? "Thanks for getting in touch.", over.by ?? uid]);
+
+r = await logMsg(staff);
+ok("the owner can record a message", r.ok, r.error);
+const msgId = r.rows?.[0]?.id;
+r = await logMsg(staff, { direction: "note", channel: "other", body: "Prefers mornings." });
+ok("the owner can record an internal note", r.ok, r.error);
+r = await logMsg(photog);
+ok("a photographer cannot record a message", !r.ok && /row-level security/i.test(r.error), r.error);
+r = await logMsg(stranger);
+ok("a non-member cannot record a message", !r.ok && /row-level security|permission denied/i.test(r.error), r.error);
+r = await logMsg(staff, { by: photog });
+ok("a message cannot be recorded in someone else's name", !r.ok && /row-level security/i.test(r.error), r.error);
+r = await logMsg(staff, { direction: "shouting" });
+ok("a message must be in, out or a note", !r.ok && /check constraint/i.test(r.error), r.error);
+r = await logMsg(staff, { body: "   " });
+ok("a message cannot be empty", !r.ok && /check constraint/i.test(r.error), r.error);
+r = await tryDb(staff, "update customer_messages set body = 'changed' where id = $1", [msgId]);
+ok("a recorded message cannot be edited", !r.ok && /permission denied/i.test(r.error), r.error);
+r = await tryDb(staff, "delete from customer_messages where id = $1", [msgId]);
+ok("a recorded message cannot be deleted", !r.ok && /permission denied/i.test(r.error), r.error);
+r = await tryDb(photog, "select id from customer_messages");
+ok("a photographer cannot read messages", !r.ok || r.rows.length === 0);
+r = await tryDb(staff, "select id from customer_messages");
+ok("the owner can read messages", r.ok && r.rows.length === 2, String(r.rows?.length));
+
+// A message may only point at an enquiry or booking of its own workspace.
+const ws2 = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+await db.exec(`
+  insert into workspaces (id, slug, name) values ('${ws2}','other','Other Studio');
+  insert into customers (id, workspace_id, display_name, primary_email_normalized, source) values ('c2000000-0000-0000-0000-000000000001','${ws2}','Other Person','other@example.com','manual');
+  insert into enquiries (id, workspace_id, enquiry_ref, contact_name, contact_email, category, message) values ('e2000000-0000-0000-0000-000000000001','${ws2}','ENQ-X-0001','Other','other@example.com','general','hi');
+  insert into booking_requests (id, workspace_id, customer_id, title) values ('b2000000-0000-0000-0000-000000000001','${ws2}','c2000000-0000-0000-0000-000000000001','Other shoot');
+`);
+r = await tryDb(staff, "insert into customer_messages (workspace_id, customer_id, enquiry_id, direction, channel, body, created_by) values ($1, $2, 'e2000000-0000-0000-0000-000000000001', 'out', 'email', 'x', $3)", [ws, bookCust, staff]);
+ok("a message cannot link to another workspace's enquiry", !r.ok && /row-level security/i.test(r.error), r.error);
+r = await tryDb(staff, "insert into customer_messages (workspace_id, customer_id, booking_id, direction, channel, body, created_by) values ($1, $2, 'b2000000-0000-0000-0000-000000000001', 'out', 'email', 'x', $3)", [ws, bookCust, staff]);
+ok("a message cannot link to another workspace's booking", !r.ok && /row-level security/i.test(r.error), r.error);
+r = await tryDb(staff, "insert into customer_messages (workspace_id, customer_id, booking_id, direction, channel, body, created_by) values ($1, $2, $3, 'out', 'email', 'x', $4) returning id", [ws, bookCust, bk1.id, staff]);
+ok("a message can link to a booking of its own workspace", r.ok, r.error);
+
+// ───────── campaign drafts (0013) ─────────
+const newDraft = (uid, over = {}) =>
+  tryDb(uid, "insert into campaigns (workspace_id, name, subject, body, audience, status, created_by) values ($1, $2, 'Hello', 'Body', $3, $4, $5) returning id",
+    [ws, over.name ?? "November news", over.audience ?? "all_subscribers", over.status ?? "draft", over.by ?? uid]);
+
+r = await newDraft(staff);
+ok("the owner can save a campaign draft", r.ok, r.error);
+const draftId = r.rows?.[0]?.id;
+r = await newDraft(staff, { status: "sent" });
+ok("a campaign cannot be marked sent (sending does not exist yet)", !r.ok && /check constraint/i.test(r.error), r.error);
+r = await newDraft(staff, { status: "scheduled" });
+ok("a campaign cannot be scheduled (sending does not exist yet)", !r.ok && /check constraint/i.test(r.error), r.error);
+r = await tryDb(staff, "update campaigns set status = 'sent' where id = $1", [draftId]);
+ok("a saved draft cannot be changed to sent", !r.ok && /check constraint/i.test(r.error), r.error);
+r = await newDraft(staff, { audience: "everyone" });
+ok("the audience must be one of the known rules", !r.ok && /check constraint/i.test(r.error), r.error);
+r = await newDraft(staff, { name: "   " });
+ok("a draft needs a name", !r.ok && /check constraint/i.test(r.error), r.error);
+r = await newDraft(photog);
+ok("a photographer cannot save a draft", !r.ok && /row-level security/i.test(r.error), r.error);
+r = await newDraft(staff, { by: photog });
+ok("a draft cannot be saved in someone else's name", !r.ok && /row-level security/i.test(r.error), r.error);
+r = await tryDb(staff, "update campaigns set status = 'archived', subject = 'Edited' where id = $1 returning status", [draftId]);
+ok("the owner can edit and archive a draft", r.ok && r.rows[0]?.status === "archived", r.error);
+r = await tryDb(staff, "delete from campaigns where id = $1", [draftId]);
+ok("not even the owner can delete a draft (it is archived instead)", !r.ok && /permission denied/i.test(r.error), r.error);
+r = await tryDb(photog, "select id from campaigns");
+ok("a photographer cannot read drafts", !r.ok || r.rows.length === 0);
 
 console.log(results.join("\n"));
 if (results.some((line) => line.startsWith("FAIL"))) process.exit(1);
