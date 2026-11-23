@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { StaffInfo } from "@/features/auth/types";
+import type { Attention } from "@/features/notifications/attention";
 import { SearchDialog } from "@/components/shared/search-dialog";
 import type { NavCounts } from "@/lib/navigation";
 import { FloatingSidebar } from "./floating-sidebar";
@@ -32,6 +33,7 @@ export function StudioShell({
   dateLabel,
   storefrontUrl,
   staff = null,
+  attention = null,
 }: {
   children: ReactNode;
   counts: NavCounts;
@@ -39,6 +41,8 @@ export function StudioShell({
   dateLabel: string;
   storefrontUrl: string;
   staff?: StaffInfo | null;
+  /** The real things waiting for attention. Null in demo mode, or when they could not be worked out. */
+  attention?: Attention | null;
 }) {
   const [navOpen, setNavOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -101,6 +105,8 @@ export function StudioShell({
             dateLabel={dateLabel}
             storefrontUrl={storefrontUrl}
             demo={demo}
+            attention={attention}
+            live={staff !== null}
           />
           <main className="workspace" id="workspace" tabIndex={-1}>
             {children}

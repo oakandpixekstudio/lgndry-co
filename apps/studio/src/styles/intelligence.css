@@ -673,3 +673,8 @@
 .ov-empty{margin:14px 0 0;font-size:12.5px;color:var(--lg-muted);line-height:1.55}
 @media(max-width:1100px){.kpi-rail:has(> :nth-child(5):last-child){grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:640px){.kpi-rail:has(> :nth-child(5):last-child){grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Live Insights */
+.ins-note{margin:6px 0 16px;font-size:12px;color:var(--lg-muted);line-height:1.5}
+.insights-live .performance-list span{font-size:11.5px}
+.performance-list.is-dense > div{margin-bottom:5px}.performance-list.is-dense > div > i{height:7px;margin-top:3px}.performance-list.is-dense span{font-size:10.5px}
