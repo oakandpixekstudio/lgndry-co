@@ -3,10 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { CrudRecordDialog, DeleteConfirmDialog, type CrudField, type CrudMedia, type CrudValues } from "@/components/shared/crud-dialogs";
-import type { WorkspaceConfig, WorkspaceRow, WorkspaceTone } from "../types";
+import type { LiveBinding, WorkspaceConfig, WorkspaceRow, WorkspaceTone } from "../types";
+
+/** The calendar's "today". The sample screen keeps its fixed sample date; a live screen uses the real date. */
+const TodayContext = createContext(new Date(2026, 10, 18, 12));
 
 function toneClass(tone: WorkspaceTone | undefined) {
   return tone ? ` tone-${tone}` : "";
@@ -98,7 +101,7 @@ function RelatedSubview({ label, record }: { label: string; record: WorkspaceRow
   );
 }
 
-function DetailPanel({ config, record, onDemoAction, onEdit, onDelete }: { config: WorkspaceConfig; record: WorkspaceRow; onDemoAction: (label: string) => void; onEdit: () => void; onDelete: () => void }) {
+function DetailPanel({ config, record, onDemoAction, onEdit, onDelete, live }: { config: WorkspaceConfig; record: WorkspaceRow; onDemoAction: (label: string) => void; onEdit: () => void; onDelete: () => void; live?: LiveBinding }) {
   const { detail } = record;
   const [activeTab, setActiveTab] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -138,13 +141,13 @@ function DetailPanel({ config, record, onDemoAction, onEdit, onDelete }: { confi
             </div>
           </div>
           <div className="record-header-actions">
-            <button type="button" className="record-edit" onClick={onEdit} aria-label={`Edit ${record.title}`}><Icon name="pencil" size={14} /> Edit</button>
+            <button type="button" className="record-edit" onClick={onEdit} hidden={Boolean(live && !live.update)} aria-label={`Edit ${record.title}`}><Icon name="pencil" size={14} /> Edit</button>
             <div className="record-more" ref={menuRef}>
               <button type="button" className="record-more-trigger" onClick={() => setMenuOpen((open) => !open)} aria-haspopup="menu" aria-expanded={menuOpen} aria-label={`More actions for ${record.title}`}><Icon name="more" size={16} /></button>
               {menuOpen ? (
                 <div className="record-more-menu" role="menu">
-                  <Link role="menuitem" href={`/${config.entity}/${encodeURIComponent(record.id)}`} onClick={() => setMenuOpen(false)}><Icon name="external" size={14} /> Open full record</Link>
-                  <button type="button" role="menuitem" className="is-danger" onClick={() => { setMenuOpen(false); onDelete(); }}><Icon name="trash" size={14} /> Delete record</button>
+                  {live ? null : <Link role="menuitem" href={`/${config.entity}/${encodeURIComponent(record.id)}`} onClick={() => setMenuOpen(false)}><Icon name="external" size={14} /> Open full record</Link>}
+                  {live && !live.remove ? null : <button type="button" role="menuitem" className="is-danger" onClick={() => { setMenuOpen(false); onDelete(); }}><Icon name="trash" size={14} /> {live?.remove?.menuLabel ?? "Delete record"}</button>}
                 </div>
               ) : null}
             </div>
@@ -256,8 +259,9 @@ function DetailPanel({ config, record, onDemoAction, onEdit, onDelete }: { confi
 }
 
 function BookingsCalendar({ rows }: { rows: WorkspaceRow[] }) {
+  const today = useContext(TodayContext);
   const [mode, setMode] = useState<"month" | "week" | "day">("month");
-  const [cursor, setCursor] = useState(() => new Date(2026, 10, 18, 12));
+  const [cursor, setCursor] = useState(() => new Date(today));
   const parseDate = (value: string) => {
     const [day, monthName, year] = value.split(" ");
     const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -274,16 +278,15 @@ function BookingsCalendar({ rows }: { rows: WorkspaceRow[] }) {
   const title = mode === "month" ? cursor.toLocaleDateString("en-ZA", { month: "long", year: "numeric" }) : mode === "week" ? `${weekDays[0]?.toLocaleDateString("en-ZA", { day: "2-digit", month: "short" })} — ${weekDays[6]?.toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" })}` : cursor.toLocaleDateString("en-ZA", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
   const hours = Array.from({ length: 12 }, (_, index) => index + 7);
   return <section className="booking-calendar" aria-label="Booking calendar">
-    <header><div><button type="button" className="button secondary" onClick={()=>setCursor(new Date(2026,10,18,12))}>Today</button><button type="button" onClick={()=>shift(-1)} aria-label="Previous period">←</button><button type="button" onClick={()=>shift(1)} aria-label="Next period">→</button><h2>{title}</h2></div><div className="calendar-mode" role="tablist">{(["month","week","day"] as const).map((item)=><button type="button" role="tab" aria-selected={mode===item} key={item} onClick={()=>setMode(item)}>{item}</button>)}</div></header>
-    {mode === "month" ? <div className="calendar-month"><div className="calendar-weekdays">{["MON","TUE","WED","THU","FRI","SAT","SUN"].map((day)=><span key={day}>{day}</span>)}</div><div className="calendar-month-grid">{monthDays.map((date)=><div key={date.toISOString()} className={`${date.getMonth()!==cursor.getMonth()?"is-outside ":""}${sameDay(date,new Date(2026,10,18))?"is-today":""}`}><button type="button" onClick={()=>{setCursor(date);setMode("day")}}>{date.getDate()}</button>{eventsFor(date).map((event)=><Link href={`/bookings/${event.id}`} className={`calendar-event tone-${event.tone??"neutral"}`} key={event.id}><strong>{event.cells.schedule?.split("–")[0] ?? "08:00"}</strong><span>{event.title}</span><small>{event.cells.client}</small></Link>)}</div>)}</div></div> : null}
-    {mode === "week" ? <div className="calendar-week"><div className="calendar-week-head"><span>GMT+2</span>{weekDays.map((date)=><button type="button" className={sameDay(date,new Date(2026,10,18))?"is-today":""} key={date.toISOString()} onClick={()=>{setCursor(date);setMode("day")}}><small>{date.toLocaleDateString("en-ZA",{weekday:"short"})}</small><strong>{date.getDate()}</strong></button>)}</div><div className="calendar-week-body"><div className="calendar-hours">{hours.map((hour)=><span key={hour}>{String(hour).padStart(2,"0")}:00</span>)}</div>{weekDays.map((date)=><div className="calendar-day-column" key={date.toISOString()}>{hours.map((hour)=><i key={hour}/>) }{eventsFor(date).map((event)=>{const start=Number(event.cells.schedule?.slice(0,2)??8);const end=Number(event.cells.schedule?.slice(6,8)??start+2);return <Link href={`/bookings/${event.id}`} key={event.id} style={{top:`${(start-7)*52+3}px`,height:`${Math.max(46,(end-start)*52-6)}px`}} className={`calendar-event tone-${event.tone??"neutral"}`}><strong>{event.cells.schedule}</strong><span>{event.title}</span><small>{event.cells.client}</small></Link>})}</div>)}</div></div> : null}
+    <header><div><button type="button" className="button secondary" onClick={()=>setCursor(new Date(today))}>Today</button><button type="button" onClick={()=>shift(-1)} aria-label="Previous period">←</button><button type="button" onClick={()=>shift(1)} aria-label="Next period">→</button><h2>{title}</h2></div><div className="calendar-mode" role="tablist">{(["month","week","day"] as const).map((item)=><button type="button" role="tab" aria-selected={mode===item} key={item} onClick={()=>setMode(item)}>{item}</button>)}</div></header>
+    {mode === "month" ? <div className="calendar-month"><div className="calendar-weekdays">{["MON","TUE","WED","THU","FRI","SAT","SUN"].map((day)=><span key={day}>{day}</span>)}</div><div className="calendar-month-grid">{monthDays.map((date)=><div key={date.toISOString()} className={`${date.getMonth()!==cursor.getMonth()?"is-outside ":""}${sameDay(date,today)?"is-today":""}`}><button type="button" onClick={()=>{setCursor(date);setMode("day")}}>{date.getDate()}</button>{eventsFor(date).map((event)=><Link href={`/bookings/${event.id}`} className={`calendar-event tone-${event.tone??"neutral"}`} key={event.id}><strong>{event.cells.schedule?.split("–")[0] ?? "08:00"}</strong><span>{event.title}</span><small>{event.cells.client}</small></Link>)}</div>)}</div></div> : null}
+    {mode === "week" ? <div className="calendar-week"><div className="calendar-week-head"><span>GMT+2</span>{weekDays.map((date)=><button type="button" className={sameDay(date,today)?"is-today":""} key={date.toISOString()} onClick={()=>{setCursor(date);setMode("day")}}><small>{date.toLocaleDateString("en-ZA",{weekday:"short"})}</small><strong>{date.getDate()}</strong></button>)}</div><div className="calendar-week-body"><div className="calendar-hours">{hours.map((hour)=><span key={hour}>{String(hour).padStart(2,"0")}:00</span>)}</div>{weekDays.map((date)=><div className="calendar-day-column" key={date.toISOString()}>{hours.map((hour)=><i key={hour}/>) }{eventsFor(date).map((event)=>{const start=Number(event.cells.schedule?.slice(0,2)??8);const end=Number(event.cells.schedule?.slice(6,8)??start+2);return <Link href={`/bookings/${event.id}`} key={event.id} style={{top:`${(start-7)*52+3}px`,height:`${Math.max(46,(end-start)*52-6)}px`}} className={`calendar-event tone-${event.tone??"neutral"}`}><strong>{event.cells.schedule}</strong><span>{event.title}</span><small>{event.cells.client}</small></Link>})}</div>)}</div></div> : null}
     {mode === "day" ? <div className="calendar-day-view"><div className="calendar-day-summary"><span>{eventsFor(cursor).length} bookings</span><strong>{cursor.toLocaleDateString("en-ZA",{weekday:"long"})}</strong><small>Studio availability · 07:00–19:00</small></div><div className="calendar-day-timeline">{hours.map((hour)=><div key={hour}><time>{String(hour).padStart(2,"0")}:00</time><span>{eventsFor(cursor).filter((event)=>Number(event.cells.schedule?.slice(0,2)??8)===hour).map((event)=><Link href={`/bookings/${event.id}`} className={`calendar-event tone-${event.tone??"neutral"}`} key={event.id}><strong>{event.cells.schedule}</strong><span>{event.title}</span><small>{event.cells.client} · {event.cells.type}</small></Link>)}</span></div>)}</div></div> : null}
   </section>;
 }
 
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const SCHEDULE_TODAY = new Date(2026, 10, 18, 12);
 
 function parseBookingDate(value: string | undefined) {
   const [day, monthName, year] = (value ?? "18 Nov 2026").split(" ");
@@ -294,8 +297,9 @@ const bookingDot = (tone: WorkspaceTone | undefined) => (tone === "success" ? "i
 
 /** Compact schedule shown next to the bookings table: mini calendar, view tabs and the next shoots. */
 function BookingsSchedule({ rows, selectedId, onSelect }: { rows: WorkspaceRow[]; selectedId: string; onSelect: (id: string) => void }) {
+  const SCHEDULE_TODAY = useContext(TodayContext);
   const [mode, setMode] = useState<"month" | "week" | "day">("month");
-  const [cursor, setCursor] = useState(SCHEDULE_TODAY);
+  const [cursor, setCursor] = useState(() => new Date(SCHEDULE_TODAY));
   const eventsFor = (date: Date) => rows.filter((row) => sameCalendarDay(parseBookingDate(row.cells.date), date));
   const shift = (direction: number) => setCursor((current) => {
     const next = new Date(current);
@@ -320,7 +324,7 @@ function BookingsSchedule({ rows, selectedId, onSelect }: { rows: WorkspaceRow[]
   });
   const upcoming = rows
     .map((row) => ({ row, date: parseBookingDate(row.cells.date) }))
-    .filter(({ date }) => date.getTime() >= new Date(2026, 10, 18).getTime())
+    .filter(({ date }) => date.getTime() >= new Date(SCHEDULE_TODAY.getFullYear(), SCHEDULE_TODAY.getMonth(), SCHEDULE_TODAY.getDate()).getTime())
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .slice(0, 3);
   const heading = mode === "day"
@@ -391,7 +395,13 @@ function BookingsSchedule({ rows, selectedId, onSelect }: { rows: WorkspaceRow[]
   );
 }
 
-export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
+export function WorkspacePage({ config, live }: { config: WorkspaceConfig; live?: LiveBinding }) {
+  // A live screen shows the real date for the calendar; the sample screen keeps its fixed sample date.
+  const [today] = useState(() => {
+    if (!live) return new Date(2026, 10, 18, 12);
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12);
+  });
   const [allRows, setAllRows] = useState<WorkspaceRow[]>(() => config.rows);
   const [activeBucket, setActiveBucket] = useState("all");
   const [query, setQuery] = useState("");
@@ -417,15 +427,15 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
   const selected = allRows.find((item) => item.id === selectedId) ?? rows[0] ?? allRows[0];
   const editingRecord = allRows.find((item) => item.id === editingId);
   const deleteRecord = allRows.find((item) => item.id === deleteId);
-  const recordFields = useMemo<CrudField[]>(() => [
+  const recordFields = useMemo<CrudField[]>(() => live ? live.fields(dialogMode ?? "create") : [
     { key: "title", label: "Record title", placeholder: `Enter ${config.entity} title` },
     { key: "subtitle", label: "Supporting detail" },
     { key: "status", label: "Status" },
     { key: "bucket", label: "Type / category" },
     ...config.columns.map((column) => ({ key: `cell:${column.key}`, label: column.label })),
-  ], [config.columns, config.entity]);
+  ], [config.columns, config.entity, live, dialogMode]);
 
-  const valuesFor = (record: WorkspaceRow | undefined): CrudValues => Object.fromEntries(recordFields.map((field) => {
+  const valuesFor = (record: WorkspaceRow | undefined): CrudValues => live && record ? live.toValues(record) : Object.fromEntries(recordFields.map((field) => {
     if (!record) return [field.key, ""];
     if (field.key === "title") return [field.key, record.title];
     if (field.key === "subtitle") return [field.key, record.subtitle];
@@ -453,20 +463,53 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
   };
 
   const demoAction = (label: string) => {
-    showNotice(`${label} is a prototype action. No external service was contacted.`);
+    if (!live) return showNotice(`${label} is a prototype action. No external service was contacted.`);
+    const action = live.actions[label];
+    if (typeof action === "string") return showNotice(action);
+    if (typeof action === "function" && selected) {
+      const message = action(selected);
+      if (message) showNotice(message);
+      return;
+    }
+    showNotice(`${label} is not available yet.`);
   };
 
   const openCreate = () => {
+    if (live && !live.create) return showNotice(live.createNote);
+    setDialogError(null);
     setEditingId(null);
     setDialogMode("create");
   };
 
   const openEdit = (id: string) => {
+    setDialogError(null);
     setEditingId(id);
     setDialogMode("edit");
   };
 
+  const [dialogError, setDialogError] = useState<string | null>(null);
+  const [dialogBusy, setDialogBusy] = useState(false);
+  const saveLive = async (values: CrudValues) => {
+    if (!live) return;
+    setDialogError(null);
+    setDialogBusy(true);
+    const editing = dialogMode === "edit" ? editingRecord : undefined;
+    const result = editing ? await (live.update?.(editing, values) ?? Promise.resolve({ error: "This record cannot be edited." })) : await (live.create?.(values) ?? Promise.resolve({ error: live.createNote }));
+    setDialogBusy(false);
+    if ("error" in result) return setDialogError(result.error);
+    if (editing) setAllRows((current) => current.map((record) => (record.id === editing.id ? result.row : record)));
+    else {
+      setAllRows((current) => [result.row, ...current]);
+      setSelectedId(result.row.id);
+      setActiveBucket("all");
+    }
+    showNotice(editing ? `${result.row.title} was saved.` : `${result.row.title} was added.`);
+    setDialogMode(null);
+    setEditingId(null);
+  };
+
   const saveRecord = (values: CrudValues, media?: CrudMedia) => {
+    if (live) return void saveLive(values);
     const cells = Object.fromEntries(config.columns.map((column) => [column.key, values[`cell:${column.key}`] || "—"]));
     if (dialogMode === "edit" && editingRecord) {
       setAllRows((current) => current.map((record) => record.id === editingRecord.id ? {
@@ -513,6 +556,19 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
 
   const deleteSelected = () => {
     if (!deleteRecord) return;
+    if (live) {
+      const record = deleteRecord;
+      void (async () => {
+        const problem = await (live.remove?.run(record) ?? Promise.resolve("This record cannot be removed."));
+        if (problem) return showNotice(problem);
+        const remaining = allRows.filter((item) => item.id !== record.id);
+        setAllRows(remaining);
+        setSelectedId(remaining[0]?.id ?? "");
+        showNotice(`${record.title} was ${live.remove?.confirmLabel ?? "removed"}.`);
+      })();
+      setDeleteId(null);
+      return;
+    }
     const remaining = allRows.filter((record) => record.id !== deleteRecord.id);
     setAllRows(remaining);
     setSelectedId(remaining[0]?.id ?? "");
@@ -521,6 +577,7 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
   };
 
   return (
+    <TodayContext.Provider value={today}>
     <div className="workspace-page">
       <header className="workspace-hero">
         <div>
@@ -597,13 +654,14 @@ export function WorkspacePage({ config }: { config: WorkspaceConfig }) {
           <footer className="workspace-list-footer"><span>Showing 1 – {rows.length} of {totalRecords} {config.entity}</span><nav aria-label="Pagination"><button type="button" aria-label="Previous page" disabled={page === 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>‹</button>{pageNumbers(pageCount, page).map((item, index) => item === "gap" ? <span key={`gap-${index}`} aria-hidden="true">…</span> : <button type="button" key={item} className={item === page ? "active" : ""} aria-current={item === page ? "page" : undefined} onClick={() => { setPage(1); if (item !== 1) showNotice("Only the first page of sample records exists in this demo workspace."); }}>{item}</button>)}<button type="button" aria-label="Next page" disabled={page === pageCount} onClick={() => { showNotice("Only the first page of sample records exists in this demo workspace."); }}>›</button></nav></footer></div>{config.entity === "bookings" ? <BookingsSchedule rows={allRows} selectedId={selected?.id ?? ""} onSelect={setSelectedId} /> : null}</div>}
         </section>
 
-        {selected ? <DetailPanel key={selected.id} config={config} record={selected} onDemoAction={demoAction} onEdit={() => openEdit(selected.id)} onDelete={() => setDeleteId(selected.id)} /> : <aside className="record-panel workspace-empty">Create a record to begin.</aside>}
+        {selected ? <DetailPanel key={selected.id} config={config} record={selected} onDemoAction={demoAction} onEdit={() => openEdit(selected.id)} onDelete={() => setDeleteId(selected.id)} live={live} /> : <aside className="record-panel workspace-empty">Create a record to begin.</aside>}
       </div>
 
-      {notice ? <div className="demo-toast" role="status"><strong>Demo workspace</strong><span>{notice}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss">×</button></div> : null}
-      {dialogMode ? <CrudRecordDialog mode={dialogMode} entity={config.entity} fields={recordFields} initialValues={dialogMode === "edit" ? valuesFor(editingRecord) : undefined} initialImages={dialogMode === "edit" ? editingRecord?.images : []} supportsMedia={["editions","bookings","campaigns"].includes(config.entity)} onClose={() => { setDialogMode(null); setEditingId(null); }} onSave={saveRecord} /> : null}
-      {deleteRecord ? <DeleteConfirmDialog entityLabel={config.entity} recordLabel={deleteRecord.title} onCancel={() => setDeleteId(null)} onConfirm={deleteSelected} /> : null}
+      {notice ? <div className="demo-toast" role="status"><strong>{live ? "Studio Desk" : "Demo workspace"}</strong><span>{notice}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss">×</button></div> : null}
+      {dialogMode ? <CrudRecordDialog mode={dialogMode} entity={config.entity} fields={recordFields} initialValues={dialogMode === "edit" ? valuesFor(editingRecord) : undefined} initialImages={dialogMode === "edit" ? editingRecord?.images : []} supportsMedia={!live && ["editions","bookings","campaigns"].includes(config.entity)} live={Boolean(live)} error={dialogError} busy={dialogBusy} onClose={() => { setDialogMode(null); setEditingId(null); setDialogError(null); }} onSave={saveRecord} /> : null}
+      {deleteRecord ? <DeleteConfirmDialog entityLabel={config.entity} recordLabel={deleteRecord.title} onCancel={() => setDeleteId(null)} onConfirm={deleteSelected} copy={live?.remove} /> : null}
     </div>
+    </TodayContext.Provider>
   );
 }
 

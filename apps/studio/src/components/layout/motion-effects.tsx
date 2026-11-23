@@ -110,7 +110,13 @@ export function MotionEffects() {
       (entries) => entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
         revealObserver.unobserve(entry.target);
-        entry.target.classList.add("is-in");
+        // Wait until React owns the element, or the class would be added to HTML React has not hydrated yet.
+        const reveal = (target: Element, waited = 0) => {
+          if (isHydrated(target)) target.classList.add("is-in");
+          else if (waited < 3000) requestAnimationFrame(() => reveal(target, waited + 16));
+          else target.classList.add("is-in"); // never hydrated within 3 s: still show the chart
+        };
+        reveal(entry.target);
       }),
       { threshold: 0.2 },
     );

@@ -7,7 +7,20 @@ import { Icon } from "@/components/icons";
 import { DeleteConfirmDialog } from "@/components/shared/crud-dialogs";
 import { EMAIL_SIGNATURE_EVENT, readEmailSignature } from "@/features/email-signature";
 
-interface ThreadRecord { id: string; sender: string; subject: string; preview: string; category: string; date: string; unread?: boolean; starred?: boolean; snoozed?: boolean; archived?: boolean; deleted?: boolean; body?: string; replies?: string[] }
+interface ThreadRecord { id: string; sender: string; subject: string; preview: string; category: string; date: string; unread?: boolean; starred?: boolean; snoozed?: boolean; archived?: boolean; deleted?: boolean; body?: string; replies?: string[]; email?: string | null; at?: string; customerId?: string }
+
+/**
+ * Connects the designed Inbox to real records. Without it this is the sample inbox, as before. With it the list holds real
+ * website enquiries and recorded entries, nothing invented is shown, and nothing can be sent from the studio yet:
+ * a reply is saved to the customer's record and opened in the person's own mail program.
+ */
+export interface InboxBinding {
+  threads: ThreadRecord[];
+  metrics: Array<[string, string, string, string]>;
+  templates: EmailTemplate[];
+  /** Saves a reply to the customer's record. Returns an error message, or null when saved. */
+  record: (thread: ThreadRecord, subject: string, body: string) => Promise<string | null>;
+}
 interface EmailTemplate { id: string; name: string; body: string; icon: "file" | "calendar" | "truck"; custom?: boolean }
 
 const initialThreads: ThreadRecord[] = [
@@ -31,9 +44,10 @@ const initialEmailTemplates: EmailTemplate[] = [
   { id: "delivery", name: "Delivery & Logistics", icon: "truck", body: "Hi {{first_name}},\n\nYour delivery is being prepared. Tracking details will follow once the work is collected.\n\nKind regards,\nLGNDRY.CO\nStudio Desk" },
 ];
 
-export function InboxWorkspace() {
-  const [threadRows, setThreadRows] = useState<ThreadRecord[]>(initialThreads);
-  const [selectedId, setSelectedId] = useState(initialThreads[0]?.id ?? "");
+export function InboxWorkspace({ live }: { live?: InboxBinding } = {}) {
+  const startThreads = live ? live.threads : initialThreads;
+  const [threadRows, setThreadRows] = useState<ThreadRecord[]>(startThreads);
+  const [selectedId, setSelectedId] = useState(startThreads[0]?.id ?? "");
   const [activeMailbox, setActiveMailbox] = useState("all");
   const [search, setSearch] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
@@ -47,7 +61,7 @@ export function InboxWorkspace() {
   const [followUp, setFollowUp] = useState(false);
   const [composeLabel, setComposeLabel] = useState(false);
   const [signatureUrl, setSignatureUrl] = useState("");
-  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>(initialEmailTemplates);
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>(live ? live.templates : initialEmailTemplates);
   const [selectedTemplateId, setSelectedTemplateId] = useState("enquiry");
   const [templateMenuId, setTemplateMenuId] = useState<string | null>(null);
   const [templateEditorMode, setTemplateEditorMode] = useState<"create" | "edit" | null>(null);
@@ -132,8 +146,10 @@ export function InboxWorkspace() {
   };
 
   const openComposer = (mode: "new" | "reply" | "edit" = "reply") => {
+    if (live && mode !== "reply") return demoNotice("To write to someone new, open their record in Customers and choose Message customer.");
+    if (live && !selectedThread.customerId) return demoNotice("Choose a conversation to reply to.");
     setComposeMode(mode);
-    setComposeTo(mode === "new" ? "" : `${selectedThread.sender} <m.sinder@coastline.co.za>`);
+    setComposeTo(mode === "new" ? "" : live ? `${selectedThread.sender}${selectedThread.email ? ` <${selectedThread.email}>` : ""}` : `${selectedThread.sender} <m.sinder@coastline.co.za>`);
     setComposeSubject(mode === "reply" ? `Re: ${selectedThread.subject}` : mode === "edit" ? selectedThread.subject : "");
     setComposeBody(mode === "new" ? "" : mode === "edit" ? (selectedThread.body || selectedThread.preview || "") : `Hi ${selectedThread.sender.split(" ")[0]},\n\nThank you for your enquiry.\n\nEdition II of A Quiet Form is still available (8 prints remaining). The total cost for a framed piece (60 × 90 cm) is R 7,800, including museum-grade framing, production and delivery to Cape Town.\n\nThe current lead time is 10–14 business days from payment confirmation.\n\nPlease let me know if you’d like us to prepare a formal quote or reserve a print for you.\n\nKind regards,\nLGNDRY.CO\nStudio Desk`);
     setComposeOpen(true);
@@ -148,6 +164,18 @@ export function InboxWorkspace() {
   };
 
   const submitComposer = () => {
+    if (live) {
+      const thread = selectedThread;
+      void (async () => {
+        const problem = await live.record(thread, composeSubject, composeBody);
+        if (problem) return demoNotice(problem);
+        setThreadRows((current) => current.map((item) => (item.id === thread.id ? { ...item, replies: [...(item.replies ?? []), composeBody], unread: false } : item)));
+        if (thread.email) window.location.href = `mailto:${thread.email}?subject=${encodeURIComponent(composeSubject)}&body=${encodeURIComponent(composeBody)}`;
+        demoNotice("Saved to the customer's record and opened in your mail program. It is only sent when you send it there.");
+      })();
+      closeCompose();
+      return;
+    }
     if (composeMode === "edit" && selectedThread.id) {
       patchSelected({ subject: composeSubject || "Untitled conversation", body: composeBody, preview: composeBody.replace(/\s+/g, " ").slice(0, 74) });
       demoNotice(`${composeSubject || "Email"} was updated in this prototype session.`);
@@ -183,10 +211,10 @@ export function InboxWorkspace() {
       <section className="workspace-intelligence" aria-label="Inbox intelligence">
         <div className="workspace-section-label">Inbox intelligence (30 days)</div>
         <div className="workspace-metric-grid inbox-metrics">
-          {[
+          {(live ? live.metrics : [
             ["Total messages", "428", "+16.8%", "mail"], ["Unread", "12", "Needs review", "inbox"], ["Enquiries", "41", "+24.2%", "user"],
             ["Orders & editions", "18", "+38.5%", "layers"], ["Bookings", "14", "+27.3%", "calendar"], ["Avg. response", "1h 26m", "↓32%", "clock"],
-          ].map(([label, value, change, icon]) => <div className="workspace-metric" key={label}><div><span>{label}</span><Icon name={icon as "mail"} size={17} /></div><strong>{value}</strong><small className="tone-success">{change}</small></div>)}
+          ]).map(([label, value, change, icon]) => <div className="workspace-metric" key={label}><div><span>{label}</span><Icon name={icon as "mail"} size={17} /></div><strong>{value}</strong><small className="tone-success">{change}</small></div>)}
         </div>
       </section>
 
@@ -198,7 +226,7 @@ export function InboxWorkspace() {
           ].map(([key, label, count]) => <button key={key} type="button" className={activeMailbox === key ? "active" : ""} onClick={() => setActiveMailbox(String(key))}><span>{label}</span><b>{count}</b></button>)}
           <div className="inbox-column-title categories"><strong>Categories</strong></div>
           {["Enquiry", "Order", "Booking", "Edition", "Client support", "General"].map((item) => <button key={item} type="button" className={activeMailbox === item.toLowerCase() ? "active" : ""} onClick={() => setActiveMailbox(item.toLowerCase())}><i /><span>{item}</span><b>{threadRows.filter((thread) => thread.category.toLowerCase() === item.toLowerCase() && !thread.deleted).length}</b></button>)}
-          <div className="connection-note"><strong>Inbound sync not connected</strong><span>Showing fictional demo conversations only.</span></div>
+          <div className="connection-note"><strong>Inbound sync not connected</strong><span>{live ? "Showing real website enquiries and entries recorded by the team. Email is not read or sent from here yet." : "Showing fictional demo conversations only."}</span></div>
         </aside>
 
         <section className="thread-list" aria-label="Conversation list">
@@ -209,9 +237,9 @@ export function InboxWorkspace() {
         </section>
 
         <article className="message-reader">
-          <header><div><span className="workspace-status tone-success">{selectedThread.category}</span><h2>{selectedThread.subject}</h2><p>From: {selectedThread.sender} &lt;m.sinder@coastline.co.za&gt;</p></div><div className="reader-actions"><button type="button" className={selectedThread.starred ? "is-active" : ""} onClick={() => patchSelected({ starred: !selectedThread.starred })} aria-label={selectedThread.starred ? "Unstar conversation" : "Star conversation"}>☆</button><button type="button" onClick={() => openComposer("reply")} aria-label="Reply">↩</button><button type="button" className={selectedThread.snoozed ? "is-active" : ""} onClick={() => { patchSelected({ snoozed: !selectedThread.snoozed }); demoNotice(selectedThread.snoozed ? "Conversation unsnoozed." : "Conversation snoozed."); }} aria-label="Snooze conversation">◷</button><button type="button" onClick={() => { patchSelected({ archived: true }); setActiveMailbox("archive"); }} aria-label="Archive conversation">□</button><button type="button" onClick={() => openComposer("edit")} aria-label="Edit email"><Icon name="pencil" size={15} /></button><button type="button" onClick={() => setDeleteOpen(true)} aria-label="Delete conversation"><Icon name="trash" size={15} /></button></div></header>
-          <div className="message-body"><div className="message-date">Tue, 18 Nov 2026 at 10:24</div><p>Hi team,</p><p>{selectedThread.body || selectedThread.preview || "This prototype conversation does not have a message body yet."}</p><p>Kind regards,<br/><strong>{selectedThread.sender}</strong><br/>Coastline Advisory</p>{selectedThread.replies?.map((reply, index) => <div className="message-sent-reply" key={`${selectedThread.id}-reply-${index}`}><span>Reply from Studio Desk</span><p>{reply}</p></div>)}</div>
-          <div className="message-attachment"><Icon name="file" size={20}/><span><strong>Framing-Reference.pdf</strong><small>1.2 MB · Demo attachment</small></span></div>
+          <header><div><span className="workspace-status tone-success">{selectedThread.category}</span><h2>{selectedThread.subject}</h2><p>From: {selectedThread.sender}{live ? (selectedThread.email ? <> &lt;{selectedThread.email}&gt;</> : null) : <> &lt;m.sinder@coastline.co.za&gt;</>}</p></div><div className="reader-actions"><button type="button" className={selectedThread.starred ? "is-active" : ""} onClick={() => live ? demoNotice("Starring is not available yet.") : patchSelected({ starred: !selectedThread.starred })} aria-label={selectedThread.starred ? "Unstar conversation" : "Star conversation"}>☆</button><button type="button" onClick={() => openComposer("reply")} aria-label="Reply">↩</button><button type="button" className={selectedThread.snoozed ? "is-active" : ""} onClick={() => { if (live) return demoNotice("Snoozing is not available yet."); patchSelected({ snoozed: !selectedThread.snoozed }); demoNotice(selectedThread.snoozed ? "Conversation unsnoozed." : "Conversation snoozed."); }} aria-label="Snooze conversation">◷</button><button type="button" onClick={() => { if (live) return demoNotice("Close the enquiry in Enquiries and it moves to Archive on its own."); patchSelected({ archived: true }); setActiveMailbox("archive"); }} aria-label="Archive conversation">□</button><button type="button" onClick={() => live ? demoNotice("Messages cannot be edited once recorded.") : openComposer("edit")} aria-label="Edit email"><Icon name="pencil" size={15} /></button><button type="button" onClick={() => live ? demoNotice("Messages are never deleted. They stay in the customer's record.") : setDeleteOpen(true)} aria-label="Delete conversation"><Icon name="trash" size={15} /></button></div></header>
+          <div className="message-body"><div className="message-date">{live ? (selectedThread.at ?? "") : "Tue, 18 Nov 2026 at 10:24"}</div>{live ? null : <p>Hi team,</p>}<p>{selectedThread.body || selectedThread.preview || (live ? "No messages yet." : "This prototype conversation does not have a message body yet.")}</p>{live ? null : <p>Kind regards,<br/><strong>{selectedThread.sender}</strong><br/>Coastline Advisory</p>}{selectedThread.replies?.map((reply, index) => <div className="message-sent-reply" key={`${selectedThread.id}-reply-${index}`}><span>Reply from Studio Desk</span><p>{reply}</p></div>)}</div>
+          {live ? null : <div className="message-attachment"><Icon name="file" size={20}/><span><strong>Framing-Reference.pdf</strong><small>1.2 MB · Demo attachment</small></span></div>}
           <button type="button" className="message-reply-box" onClick={() => openComposer("reply")}>Reply to {selectedThread.sender}…</button>
         </article>
       </div>
@@ -232,14 +260,14 @@ export function InboxWorkspace() {
                 {attachments.length||followUp||composeLabel?<div className="compose-chips">{attachments.map((item)=><button type="button" key={item} onClick={()=>setAttachments([])}><Icon name="file" size={13}/>{item} ×</button>)}{followUp?<button type="button" onClick={()=>setFollowUp(false)}><Icon name="calendar" size={13}/>Follow up · 21 Nov ×</button>:null}{composeLabel?<button type="button" onClick={()=>setComposeLabel(false)}>High Priority ×</button>:null}</div>:null}
               </div>
             </div>
-            <footer className="compose-footer"><div><button type="button" className="button secondary" onClick={()=>setAttachments(["Framing-Reference.pdf"])}><Icon name="file" size={14}/> Attach files</button><button type="button" className="button secondary" onClick={()=>setFollowUp((current)=>!current)}><Icon name="calendar" size={14}/> Add follow up⌄</button><button type="button" className="button secondary" onClick={()=>setComposeLabel((current)=>!current)}><Icon name="star" size={14}/> Add label⌄</button></div><span/><button type="button" className="button secondary save-draft" onClick={() => { closeCompose(); demoNotice("Draft saved in this prototype session."); }}>Save draft</button><button type="button" className="button" onClick={submitComposer}><Icon name="arrow" size={14}/> {composeMode === "edit" ? "Save changes" : composeMode === "new" ? "Send email" : "Send reply"}</button></footer>
+            <footer className="compose-footer"><div><button type="button" className="button secondary" onClick={()=>live ? demoNotice("Attachments are not available yet.") : setAttachments(["Framing-Reference.pdf"])}><Icon name="file" size={14}/> Attach files</button><button type="button" className="button secondary" onClick={()=>setFollowUp((current)=>!current)}><Icon name="calendar" size={14}/> Add follow up⌄</button><button type="button" className="button secondary" onClick={()=>setComposeLabel((current)=>!current)}><Icon name="star" size={14}/> Add label⌄</button></div><span/><button type="button" className="button secondary save-draft" onClick={() => { closeCompose(); demoNotice(live ? "Drafts are not available yet." : "Draft saved in this prototype session."); }}>Save draft</button><button type="button" className="button" onClick={submitComposer}><Icon name="arrow" size={14}/> {composeMode === "edit" ? "Save changes" : composeMode === "new" ? "Send email" : live ? "Save and open in mail" : "Send reply"}</button></footer>
           </section>
         </div>
       ) : null}
       {templateEditorMode ? <div className="template-editor-scrim" ref={templateScrimRef} role="presentation"><section className="template-editor" role="dialog" aria-modal="true" aria-labelledby="template-editor-title"><header><div><span>COMMUNICATIONS LIBRARY</span><h2 id="template-editor-title">{templateEditorMode === "edit" ? "Edit email template" : "Create email template"}</h2><p>Use <code>{"{{first_name}}"}</code> to personalise the recipient greeting.</p></div><button type="button" onClick={closeTemplateEditor} aria-label="Close template editor"><Icon name="close" size={18}/></button></header><label><span>Template name</span><input value={templateName} onChange={(event)=>setTemplateName(event.target.value)} autoFocus/></label><label className="template-body-field"><span>Email content</span><textarea value={templateBody} onChange={(event)=>setTemplateBody(event.target.value)}/></label><footer><button type="button" className="button secondary" onClick={closeTemplateEditor}>Cancel</button><button type="button" className="button" onClick={saveTemplate}>{templateEditorMode === "edit" ? "Save template" : "Create template"}</button></footer></section></div> : null}
       {templateDeleteId ? <DeleteConfirmDialog entityLabel="email template" recordLabel={emailTemplates.find((template)=>template.id===templateDeleteId)?.name ?? "Template"} onCancel={()=>setTemplateDeleteId(null)} onConfirm={()=>{setEmailTemplates((current)=>current.filter((template)=>template.id!==templateDeleteId));setTemplateDeleteId(null);demoNotice("Email template deleted.")}}/> : null}
       {deleteOpen ? <DeleteConfirmDialog entityLabel="conversation" recordLabel={selectedThread.subject} onCancel={() => setDeleteOpen(false)} onConfirm={deleteThread} /> : null}
-      {notice ? <div className="demo-toast" role="status"><strong>Demo workspace</strong><span>{notice}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss">×</button></div> : null}
+      {notice ? <div className="demo-toast" role="status"><strong>{live ? "Studio Desk" : "Demo workspace"}</strong><span>{notice}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss">×</button></div> : null}
     </div>
   );
 }

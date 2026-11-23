@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllRows } from "@/lib/supabase/paged";
 
 export interface CustomerEnquiry {
   id: string;
@@ -61,9 +62,12 @@ const toCustomer = (row: Row): LiveCustomer => {
 
 /** Customers with their enquiries and marketing consent in ONE trip. Row-level security decides who may read them. */
 export async function fetchCustomers(db: SupabaseClient, workspaceId: string): Promise<LiveCustomer[]> {
-  const { data, error } = await db.from("customers").select(SELECT).eq("workspace_id", workspaceId).order("created_at", { ascending: false }).limit(1000);
-  if (error) throw new Error(`Could not load customers: ${error.message}`);
-  return ((data ?? []) as unknown as Row[]).map(toCustomer);
+  try {
+    const rows = await fetchAllRows<Row>((from, to) => db.from("customers").select(SELECT).eq("workspace_id", workspaceId).order("created_at", { ascending: false }).order("id").range(from, to));
+    return rows.map(toCustomer);
+  } catch (problem) {
+    throw new Error(`Could not load customers: ${problem instanceof Error ? problem.message : "database error"}`);
+  }
 }
 
 /** Phone numbers are stored in international form so they work with WhatsApp, calls and later SMS. */
@@ -102,6 +106,28 @@ export async function createCustomer(
       company: input.company.trim() || null, notes: input.notes.trim() || null, source: "manual",
       customer_type: input.company.trim() ? "company" : "individual",
     })
+    .select(SELECT)
+    .single();
+  if (error) return { error: friendly(error) };
+  return { customer: toCustomer(data as unknown as Row) };
+}
+
+/** Saves the details of an existing customer. The email is the person's identity, so a clash with another customer is refused. */
+export async function updateCustomer(
+  db: SupabaseClient,
+  id: string,
+  input: { name: string; email: string; phone: string; company: string; notes: string },
+): Promise<{ customer: LiveCustomer } | { error: string }> {
+  const name = input.name.trim();
+  const email = input.email.trim().toLowerCase();
+  if (!name) return { error: "Enter the customer's name." };
+  if (!EMAIL.test(email)) return { error: "Enter a valid email address." };
+  const phone = normalisePhone(input.phone);
+  if (!phone.ok) return { error: "Enter the phone number in international form, for example +27 82 000 0000, or a 10-digit South African number." };
+  const { data, error } = await db
+    .from("customers")
+    .update({ display_name: name, primary_email_normalized: email, phone_e164: phone.phone, company: input.company.trim() || null, notes: input.notes.trim() || null, customer_type: input.company.trim() ? "company" : "individual" })
+    .eq("id", id)
     .select(SELECT)
     .single();
   if (error) return { error: friendly(error) };

@@ -17,6 +17,8 @@ export interface ThreadItem {
   by: string | null;
   /** A website enquiry that has been closed or converted: it no longer waits for an answer. */
   handled: boolean;
+  /** For website enquiries: availability, general, commission or photography. */
+  category?: string;
 }
 
 export interface Thread {
@@ -54,7 +56,7 @@ const fromMessage = (row: MessageRow): ThreadItem => ({
 });
 const fromEnquiry = (row: EnquiryRow): ThreadItem => ({
   id: row.id, origin: "form", direction: "in", channel: "website", subject: row.topic || row.category, body: row.message, at: row.received_at, enquiryRef: row.enquiry_ref, by: null,
-  handled: row.status === "closed" || row.status === "converted",
+  handled: row.status === "closed" || row.status === "converted", category: row.category,
 });
 
 /** Puts a conversation in time order and works out when it was last active and whether it is waiting for an answer. */

@@ -50,7 +50,7 @@ export function SalesPanel({ sales, demo }: { sales: IntelligenceSnapshot["sales
         <div className="sales-head-figure">
           <div className="revenue-figure tabnum">{formatZar(sales.periodRevenueCents)}</div>
           <div className="caps muted" style={{ marginTop: 6, fontSize: 10.5 }}>
-            30-day revenue &nbsp; {formatPercent(sales.periodDeltaPct)}
+            30-day revenue{demo ? <> &nbsp; {formatPercent(sales.periodDeltaPct)}</> : " · no sales yet"}
           </div>
         </div>
       </div>
